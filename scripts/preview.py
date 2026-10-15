@@ -213,6 +213,8 @@ def main() -> int:
     cfg = c.load_config(args.config)
     document, stats = render(path.read_text(encoding="utf-8"), cfg)
     out = Path(args.out)
+    if out.parent != Path(""):
+        out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(document, encoding="utf-8")
     for lineno, message in stats["warnings"]:
         print(f"[WARN] preview: {message} (line {lineno})")

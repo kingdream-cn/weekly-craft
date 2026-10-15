@@ -93,9 +93,15 @@ def main() -> int:
         if remote:
             pull = git(["pull", "--rebase", "origin", branch], workdir, check=False)
             if pull.returncode != 0:
+                in_rebase = (workdir / ".git" / "rebase-merge").exists() or (workdir / ".git" / "rebase-apply").exists()
                 git(["rebase", "--abort"], workdir, check=False)
-                print("[ERROR] 同步仓库 pull --rebase 失败（远端存在冲突提交），已 abort，请人工处理", file=sys.stderr)
-                log_history({"issue": src.name, "commit": None, "pushed": False, "result": "sync-conflict"})
+                sys.stdout.flush()
+                if in_rebase:
+                    print("[ERROR] 同步仓库 pull --rebase 失败（远端存在冲突提交），已 abort，请人工处理", file=sys.stderr)
+                    log_history({"issue": src.name, "commit": None, "pushed": False, "result": "sync-conflict"})
+                else:
+                    print(f"[ERROR] 同步仓库 pull 失败（网络或凭据问题，非内容冲突）:\n{pull.stderr.strip()}\n请检查网络后重试", file=sys.stderr)
+                    log_history({"issue": src.name, "commit": None, "pushed": False, "result": "sync-error"})
                 return 1
     elif remote:
         workdir.parent.mkdir(parents=True, exist_ok=True)
@@ -151,8 +157,12 @@ def main() -> int:
         log_history({"issue": src.name, "commit": sha, "pushed": False, "result": "dry-run"})
         if not args.push:
             counts = git(["rev-list", "--left-right", "--count", f"origin/{branch}...HEAD"], workdir, check=False)
-            ahead_behind = counts.stdout.strip() if counts.returncode == 0 else "? ?"
-            print(f"[4/5] DRY-RUN 完成（ahead/behind: {ahead_behind}）。加 --push 才会实际推送。")
+            if counts.returncode == 0:
+                behind, ahead = counts.stdout.split()
+                ahead_behind = f"ahead {ahead}, behind {behind}"
+            else:
+                ahead_behind = "?"
+            print(f"[4/5] DRY-RUN 完成（{ahead_behind}）。加 --push 才会实际推送。")
             if args.as_json:
                 c.emit_json({"dry_run": True, "commit": sha, "workdir": str(workdir), "ahead_behind": ahead_behind})
             return 0
@@ -160,9 +170,15 @@ def main() -> int:
     print(f"[4/5] 即将推送: remote={remote} branch={branch} 文件={[str(target.relative_to(workdir))]}")
     pull = git(["pull", "--rebase", "origin", branch], workdir, check=False)
     if pull.returncode != 0:
+        in_rebase = (workdir / ".git" / "rebase-merge").exists() or (workdir / ".git" / "rebase-apply").exists()
         git(["rebase", "--abort"], workdir, check=False)
-        print("[ERROR] 推送前 pull --rebase 冲突，已 abort，请人工处理", file=sys.stderr)
-        log_history({"issue": src.name, "commit": sha, "pushed": False, "result": "rebase-conflict"})
+        sys.stdout.flush()
+        if in_rebase:
+            print("[ERROR] 推送前 pull --rebase 冲突，已 abort，请人工处理（本地 commit 保留）", file=sys.stderr)
+            log_history({"issue": src.name, "commit": sha, "pushed": False, "result": "rebase-conflict"})
+        else:
+            print(f"[ERROR] 推送前 pull 失败（网络或凭据问题，非内容冲突）:\n{pull.stderr.strip()}\n本地 commit 保留，检查网络后重跑 --push 即可", file=sys.stderr)
+            log_history({"issue": src.name, "commit": sha, "pushed": False, "result": "sync-error"})
         return 1
     if not target.exists():
         print("[ERROR] rebase 后目标文件消失，请人工检查", file=sys.stderr)
