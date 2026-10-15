@@ -7,7 +7,7 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-green.svg)](#)
 [![Zero deps](https://img.shields.io/badge/dependencies-0-orange.svg)](#)
 
-适用于 Qoder / Claude Code 等支持 Agent Skills 的 CLI，也可脱离 agent
+适用于 Qoder / Claude Code/Trae 等支持 Agent Skills 的 CLI，也可脱离 agent
 直接当命令行工具集使用。
 
 ## 特性
