@@ -119,6 +119,10 @@ bash tests/run_tests.sh   # 双 golden + 坏样本 rule id 断言，全绿输出
 
 ## FAQ
 
+**Q: 会发布到 Qoder 官方市场（插件 zip）吗？**
+A: v1 不做；当前以 GitHub 公开仓库 + skills.sh 为分发渠道，官方市场插件打包列入后续路线。
+
+
 **Q: 必须用 VitePress 吗？**
 A: 不必须。产出的 issue-N.md 是合法 GFM；无站点可用 preview.py 的单文件 HTML，
 或 `card.containers=false` 直发任意博客。见 [references/publishing.md](references/publishing.md)。
