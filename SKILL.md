@@ -90,4 +90,4 @@ W01 引文超长 / W02 文内 URL 重复 / W03 字段格式惯用式 / W04 perso
 - `references/`：style-guide / workflow / publishing / presets-guide / content-sourcing（按需加载）
 - `assets/issue-template.md`（脚手架模板）、`assets/preview-style.css`（预览基础样式）、
   `assets/card-spec.md`（card 容器语法说明）
-- `tests/run_tests.sh`：双 golden 回归（改动任何脚本/预设后必须先跑通）
+- `tests/run_tests.sh`：单测 + 三 golden + 坏样本回归（改动任何脚本/预设后必须先跑通）

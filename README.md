@@ -4,6 +4,7 @@
 覆盖 取号 → 转换 → 校验 → 去重 → 预览 → 安全发布 全流程。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![tests](https://github.com/kingdream-cn/weekly-craft/actions/workflows/test.yml/badge.svg)](https://github.com/kingdream-cn/weekly-craft/actions/workflows/test.yml)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-green.svg)](#)
 [![Zero deps](https://img.shields.io/badge/dependencies-0-orange.svg)](#)
 
@@ -107,15 +108,23 @@ weekly-craft/
 ├── presets/              # 官方预设
 ├── references/           # 深度文档（按需加载）
 ├── assets/               # 模板/样式/card 规范
-├── tests/                # 双 golden 回归 + 15 坏样本
+├── tests/                # 单测 + 三 golden + 15 坏样本
 └── config.example.json
 ```
 
 ## 测试
 
 ```bash
-bash tests/run_tests.sh   # 双 golden + 坏样本 rule id 断言，全绿输出 ALL TESTS PASSED
+bash tests/run_tests.sh   # 单测 + 三 golden + 坏样本 rule id 断言，全绿输出 ALL TESTS PASSED
 ```
+
+GitHub Actions 已在 Python 3.9 / 3.10 / 3.11 / 3.12 矩阵上自动跑同一套回归
+（见 [.github/workflows/test.yml](.github/workflows/test.yml)）。
+
+## 贡献
+
+欢迎提交预设、新规则、脚本与文档改进，流程见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+提 Issue 请用 [模板](.github/ISSUE_TEMPLATE/)（bug / 功能请求 / 预设提交）。
 
 ## FAQ
 
