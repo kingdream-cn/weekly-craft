@@ -1,0 +1,12 @@
+{
+  "_preset": "embodied-ai-weekly-legacy",
+  "_comment": "embodied-ai-weekly 的板块变体：复现早期形态（issue 37–41）——第 4 板块是「⚙️ 工程实战 & 踩坑记录」而非「🛒 硬件测评 & 选型雷达」，其余风格（配色/字段/阈值）全部继承。用法：weekly.config.json 写 {\"extends\": \"embodied-ai-weekly-legacy\", ...}。",
+  "extends": "embodied-ai-weekly",
+  "sections": [
+    { "heading": "💡 行业洞察", "card_types": ["insight"] },
+    { "heading": "📚 精选教程 & 学习资源", "card_types": ["tutorial"] },
+    { "heading": "🛠️ 开源项目 & 行业案例", "card_types": ["opensource", "practice"] },
+    { "heading": "⚙️ 工程实战 & 踩坑记录", "card_types": ["practice"] },
+    { "heading": "📑 顶会前沿 & 论文速递", "card_types": ["paper"] }
+  ]
+}

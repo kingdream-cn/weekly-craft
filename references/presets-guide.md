@@ -59,6 +59,36 @@
 - `embodied-ai-weekly.json`：具身智能周刊风格——5 个 emoji 板块、6 色 card、
   三字段（核心亮点/团队参考/载体）、tags 3–5、description ≤80、引文 ≤125。
   演示站点即该预设的实例；任何人 `extends` 它即可复刻同款排版。
+- `embodied-ai-weekly-legacy.json`：上者的**板块变体**，见下。
+
+## 板块变体（只换板块，其余继承）
+
+同一刊物的板块构成会随选题演进。做法是让变体预设 `extends` 主预设，
+**只覆盖 `sections`**，配色/字段/阈值全继承——`embodied-ai-weekly-legacy` 就是范例：
+它把第 4 板块从「🛒 硬件测评 & 选型雷达」换回早期形态（issue 37–41）的
+「⚙️ 工程实战 & 踩坑记录」，复用了已有的 `practice` 配色，因此无需新增任何 color 定义。
+
+```json
+{
+  "extends": "embodied-ai-weekly",
+  "sections": [
+    { "heading": "💡 行业洞察", "card_types": ["insight"] },
+    { "heading": "📚 精选教程 & 学习资源", "card_types": ["tutorial"] },
+    { "heading": "🛠️ 开源项目 & 行业案例", "card_types": ["opensource", "practice"] },
+    { "heading": "⚙️ 工程实战 & 踩坑记录", "card_types": ["practice"] },
+    { "heading": "📑 顶会前沿 & 论文速递", "card_types": ["paper"] }
+  ]
+}
+```
+
+要点：
+
+- `sections` 是**列表整体替换**，所以变体要写全所有板块，不能只写改动那一项。
+- 新板块优先复用主预设已有的 card type（配色随之继承）；确实要新 type 时，
+  再在 `card.colors` 里补上该 type 的 4 个色值（`bg`/`border`/`dark_bg`/`dark_border`）。
+- 变体不会自动同步主预设的后续改动：主预设改板块时，变体要跟着改。
+- 回归保障：变体一般配一个早期形态的 golden（如 `tests/golden/issue-40-legacy.md`）
+  钉住"只换板块、其余继承"的语义，见 `tests/test_common.py::TestPresetVariants`。
 
 ## 制作新预设
 
@@ -68,9 +98,10 @@
 
 ```bash
 echo '{"extends": "<你的名字>"}' > /tmp/t.json
-python3 scripts/new_issue.py --config /tmp/t.json --out /tmp/out
-python3 scripts/validate_issue.py /tmp/out/*.md --config /tmp/t.json
-python3 scripts/preview.py /tmp/out/*.md --config /tmp/t.json --open
+# 取号要能从 --out 的上级目录定位到 issues 目录，所以写到 .../issues 下
+python3 scripts/new_issue.py --config /tmp/t.json --out /tmp/out/issues
+python3 scripts/validate_issue.py /tmp/out/issues/*.md --config /tmp/t.json
+python3 scripts/preview.py /tmp/out/issues/issue-1.md --config /tmp/t.json --open
 ```
 
 4. 提交上游：fork 仓库 → 加预设文件（可选：加一个 golden 样本进 `tests/`）→

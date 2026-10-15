@@ -76,8 +76,11 @@ W01 引文超长 / W02 文内 URL 重复 / W03 字段格式惯用式 / W04 perso
 ## 预设与换皮
 
 - 官方预设：`presets/minimal.json`（中性默认显式化）、`presets/embodied-ai-weekly.json`
-  （具身智能周刊风格：5 板块 / 6 色 card / 三字段 / 各阈值）。
+  （具身智能周刊风格：5 板块 / 6 色 card / 三字段 / 各阈值）、
+  `presets/embodied-ai-weekly-legacy.json`（板块变体：仅第 4 板块换成「⚙️ 工程实战 & 踩坑记录」，
+  其余全继承，复现早期形态）。
 - 用户配置只需 `{"extends": "embodied-ai-weekly", ...覆盖字段}`；换预设即换风格。
+- **板块变体**：只覆盖 `sections`（列表整体替换，需写全）即可换板块，配色/字段/阈值靠 extends 继承。
 - 新建预设并提交上游的流程见 `references/presets-guide.md`。
 
 ## 素材搜集（research 阶段，可选）

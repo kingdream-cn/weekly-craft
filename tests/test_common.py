@@ -100,6 +100,29 @@ class TestLoadConfig(TempCwdTest):
         self.assertEqual(ctx.exception.code, 2)
 
 
+class TestPresetVariants(TempCwdTest):
+    """板块变体预设只应改 sections，其余风格全部继承。"""
+
+    def _load(self, extends: str) -> dict:
+        (Path.cwd() / "cfg.json").write_text(json.dumps({"extends": extends}), encoding="utf-8")
+        return c.load_config(str(Path.cwd() / "cfg.json"))
+
+    def test_legacy_variant_swaps_only_fourth_section(self):
+        base = self._load("embodied-ai-weekly")
+        legacy = self._load("embodied-ai-weekly-legacy")
+        self.assertEqual(len(legacy["sections"]), 5)
+        self.assertEqual(base["sections"][3]["heading"], "🛒 硬件测评 & 选型雷达")
+        self.assertEqual(legacy["sections"][3]["heading"], "⚙️ 工程实战 & 踩坑记录")
+        self.assertEqual(legacy["sections"][:3], base["sections"][:3])
+        self.assertEqual(legacy["sections"][4], base["sections"][4])
+
+    def test_legacy_variant_inherits_style(self):
+        base = self._load("embodied-ai-weekly")
+        legacy = self._load("embodied-ai-weekly-legacy")
+        for key in ("site_name", "entry", "card", "frontmatter", "quote_max_chars", "dedup", "sources"):
+            self.assertEqual(legacy[key], base[key], key)
+
+
 class TestFrontmatter(unittest.TestCase):
     def test_scalars_and_list(self):
         text = (

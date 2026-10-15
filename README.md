@@ -92,12 +92,15 @@ cp -r weekly-craft ~/.qoder-cn/skills/weekly-craft   # 或 ln -s
 |---|---|
 | [`minimal`](presets/minimal.json) | 中性默认显式化：3 板块、无容器、单字段"摘要" |
 | [`embodied-ai-weekly`](presets/embodied-ai-weekly.json) | 具身智能周刊：5 emoji 板块、6 色 card、核心亮点/团队参考/载体三字段 |
+| [`embodied-ai-weekly-legacy`](presets/embodied-ai-weekly-legacy.json) | 上者的**板块变体**：仅第 4 板块换成「⚙️ 工程实战 & 踩坑记录」，其余全部继承 |
 
 演示站点：[具身智能周刊](https://kingdream-cn.github.io/embodied-ai-weekly/)
 即 `embodied-ai-weekly` 预设的实例。
 
 换风格 = 换一行 `extends`；做自己的预设并提交上游见
 [references/presets-guide.md](references/presets-guide.md)。
+`embodied-ai-weekly-legacy` 是「板块变体」的最小示例：只覆盖 `sections`，
+配色/字段/阈值全靠 `extends` 继承，想换板块照此写即可。
 
 ## 目录结构
 
@@ -108,14 +111,14 @@ weekly-craft/
 ├── presets/              # 官方预设
 ├── references/           # 深度文档（按需加载）
 ├── assets/               # 模板/样式/card 规范
-├── tests/                # 单测 + 三 golden + 15 坏样本
+├── tests/                # 单测 + 四 golden + 15 坏样本
 └── config.example.json
 ```
 
 ## 测试
 
 ```bash
-bash tests/run_tests.sh   # 单测 + 三 golden + 坏样本 rule id 断言，全绿输出 ALL TESTS PASSED
+bash tests/run_tests.sh   # 单测 + 四 golden + 坏样本 rule id 断言，全绿输出 ALL TESTS PASSED
 ```
 
 GitHub Actions 已在 Python 3.9 / 3.10 / 3.11 / 3.12 矩阵上自动跑同一套回归

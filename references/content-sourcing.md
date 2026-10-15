@@ -28,6 +28,46 @@ research 阶段的目标：产出一份**去重后的候选清单**（`candidate
 - 排序：脚本默认 `submittedDate` 降序；`--max` 控制条数。
 - 过滤：脚本按 published 时间截取 `--days` 窗口，超窗条目直接丢弃。
 
+## 七方向检索关键词（arxiv / GitHub）
+
+单靠 `cat:cs.RO` 会捞到大量噪声；按方向追加关键词命中率更高。
+下表是可直接粘贴的 `--query` / `--topic` 组合（每个方向独立请求一次，避免一次查太宽）：
+
+| 方向 | arXiv `--query` 关键词 | GitHub `--topic` |
+|---|---|---|
+| 具身感知与场景理解 | `abs:"affordance"`、`abs:"scene graph"`、`abs:"egocentric"` | `affordance`、`scene-graph` |
+| 具身决策与规划 | `abs:"task and motion planning"`、`abs:"long-horizon"`、`abs:"LLM planner"` | `task-planning`、`embodied-agent` |
+| 具身控制与操作 | `abs:"dexterous manipulation"`、`abs:"diffusion policy"`、`abs:"visuomotor"` | `manipulation`、`imitation-learning` |
+| 强化学习与世界模型 | `abs:"world model"`、`abs:"sim-to-real"`、`abs:"reinforcement learning"` | `world-model`、`sim2real` |
+| 具身智能体与大模型 | `abs:"vision-language-action"`、`abs:"VLA"`、`abs:"embodied agent"` | `vla`、`embodied-ai` |
+| 仿真、数据与平台 | `abs:"benchmark"`、`abs:"simulator"`、`abs:"dataset"` | `robotics-simulation`、`robot-dataset` |
+| 人机交互与具身社会智能 | `abs:"human-robot interaction"`、`abs:"shared autonomy"` | `human-robot-interaction`、`shared-autonomy` |
+
+```bash
+# 单方向：分类 + 关键词（脚本会 URL 编码，引号照写）
+python3 scripts/fetch_arxiv.py --query 'cat:cs.RO AND abs:"dexterous manipulation"' --days 7 --max 20
+
+# 多方向合并（控制在 5 项以内，OR 太宽会引入噪声）
+python3 scripts/fetch_arxiv.py --query 'cat:cs.RO AND (abs:"VLA" OR abs:"world model")' --days 7
+
+# GitHub：多个 --topic 会被脚本拼成一条 topic:a OR topic:b 查询，一次给 2–5 个为宜
+python3 scripts/fetch_github_trends.py --topic manipulation --topic vla --min-stars 50
+```
+
+> ⚠️ GitHub Search API 对 OR 项数有上限（≈5），且脚本是把多个 `--topic` 合成**一条**查询，
+> 所以覆盖 7 个方向要**分多次调用**（每个方向跑一次），而不是一次全塞进去。
+
+方向清单是会随选题漂移的**工作台账**，不是硬约束：某周没有合适条目时宁可空板块
+（写占位行），也不要为凑数降门槛。
+
+## 配图原则（若站点需要图）
+
+- 只用一手来源：论文原文 figure（`https://arxiv.org/html/<id>v<n>/x1.png`）、
+  项目主页截图、GitHub 仓库截图；**不用 AI 生成图**。
+- 图要附来源链接（figcaption 注明出处），方便读者溯源。
+- 本 skill 不内置图片抓取工具（保持零依赖）；需要时由 agent 用 WebFetch/浏览器
+  取图并落到站点仓库，issue 里只放图片路径或外链。
+
 ## GitHub 趋势要点
 
 - Search API 的"趋势"近似 = 近期创建 + star 排序；要抓"老项目突然火"，

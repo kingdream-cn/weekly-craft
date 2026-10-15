@@ -28,20 +28,23 @@ bash tests/run_tests.sh
 测试构成：
 
 - `tests/test_common.py`：核心纯函数单测（配置合并、extends 链、URL 归一化等）
-- `tests/golden/`：合法样本回归（neutral 零配置 + embodied 预设，任何改动不得让它们失败）
+- `tests/golden/`：合法样本回归（neutral 零配置 + embodied 预设 + 板块变体预设，任何改动不得让它们失败）
 - `tests/bad/`：坏样本必须触发对应 rule id
 
 ## 添加预设
 
 1. 复制 `presets/minimal.json` 为 `presets/<你的预设名>.json`（kebab-case）
-2. 只写与默认不同的字段（字段全表见 `references/presets-guide.md`）
+2. 只写与默认不同的字段（字段全表见 `references/presets-guide.md`）；
+   只想换板块就只覆盖 `sections`（列表整体替换，要写全所有板块），
+   范例见 `presets/embodied-ai-weekly-legacy.json`
 3. 自测：
 
 ```bash
 echo '{"extends": "<你的预设名>"}' > /tmp/t.json
-python3 scripts/new_issue.py --config /tmp/t.json --out /tmp/preset-check
-python3 scripts/validate_issue.py /tmp/preset-check/*.md --config /tmp/t.json
-python3 scripts/preview.py /tmp/preset-check/*.md --config /tmp/t.json
+# 取号要能从 --out 的上级目录定位到 issues 目录，所以写到 .../issues 下
+python3 scripts/new_issue.py --config /tmp/t.json --out /tmp/preset-check/issues
+python3 scripts/validate_issue.py /tmp/preset-check/issues/*.md --config /tmp/t.json
+python3 scripts/preview.py /tmp/preset-check/issues/issue-1.md --config /tmp/t.json
 ```
 
 4. 可选但强烈建议：用你的风格写一份真实样本放进 `tests/golden/`，并在 `tests/run_tests.sh` 加一行校验

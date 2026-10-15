@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 一键回归：单测 + 三 golden 必须 PASS；坏样本必须触发对应 rule id。
+# 一键回归：单测 + 四 golden 必须 PASS；坏样本必须触发对应 rule id。
 set -u
 cd "$(dirname "$0")/.."
 PY=python3
@@ -14,6 +14,8 @@ echo "== golden: embodied-ai-weekly preset =="
 P=presets/embodied-ai-weekly.json
 $PY scripts/validate_issue.py tests/golden/issue-42.md --config "$P" || FAIL=1
 $PY scripts/validate_issue.py tests/golden/issue-43.md --config "$P" || FAIL=1
+echo "== golden: embodied-ai-weekly-legacy preset (板块变体) =="
+$PY scripts/validate_issue.py tests/golden/issue-40-legacy.md --config presets/embodied-ai-weekly-legacy.json || FAIL=1
 
 check_rule() {
   local file="$1" rule="$2" cfg="${3:-}"
