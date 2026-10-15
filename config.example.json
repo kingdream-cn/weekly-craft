@@ -1,0 +1,56 @@
+{
+  "_comment": "weekly-craft 配置示例。复制为 weekly.config.json 放在你的周刊工作目录（运行脚本时的 cwd），或用 --config / $WEEKLY_CONFIG 指定。所有字段可省略，省略即使用内置中性默认；extends 可引用 presets/ 下的预设名或任意 JSON 路径。",
+  "_comment_extends": "示例：\"extends\": \"embodied-ai-weekly\" 或 \"extends\": \"minimal\" 或 \"extends\": \"./my-style.json\"",
+  "site_name": "我的周刊",
+  "title_template": "{site_name} - 第 {number} 期",
+  "issue_filename": "issue-{number}.md",
+  "issues_subdir": "issues",
+  "sections": [
+    { "heading": "本周要点", "card_types": [] },
+    { "heading": "内容精选", "card_types": [] },
+    { "heading": "工具与项目", "card_types": [] }
+  ],
+  "separator": "---",
+  "empty_section_placeholder": "> *本期暂无收录。*",
+  "_comment_quote_line": "引用行模板，留空则不生成也不校验；支持 {date} 与 {topics} 占位符",
+  "quote_line_template": "",
+  "entry": {
+    "required_fields": ["摘要"],
+    "field_aliases": {},
+    "tag_required": false,
+    "_comment_carrier": "carrier_field 指定后用 carrier_pattern 正则做 W03 惯用格式提示，留空关闭",
+    "carrier_field": "",
+    "carrier_pattern": ""
+  },
+  "card": {
+    "_comment_containers": "true 时条目需包在 ::: card <type> 容器中，colors 提供预览配色（bg/border/dark_bg/dark_border）",
+    "containers": false,
+    "colors": {}
+  },
+  "frontmatter": {
+    "required": ["title", "date", "description", "tags"],
+    "_comment_limits": "tags_min/tags_max/description_max_chars 为 0 表示不限制",
+    "tags_min": 0,
+    "tags_max": 0,
+    "description_max_chars": 0
+  },
+  "_comment_quote": "quote_max_chars 为直接引文长度上限（W01），0 表示不检查",
+  "quote_max_chars": 0,
+  "_comment_persona": "persona 为团队参考字段的写作人设描述，留空则只要求工程团队视角",
+  "persona": "",
+  "dedup": {
+    "title_threshold": 0.85,
+    "url_strip_params": ["utm_*", "spm", "vd_source"]
+  },
+  "sources": {
+    "arxiv_categories": [],
+    "github_topics": [],
+    "sites": []
+  },
+  "repo": {
+    "_comment_repo": "remote 为周刊站点源仓库地址（publish.py 使用）；workdir 为本地克隆复用目录，留空则每次临时克隆",
+    "remote": "",
+    "branch": "main",
+    "workdir": ""
+  }
+}

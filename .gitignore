@@ -1,0 +1,16 @@
+# 用户本地配置（含仓库地址等个人信息），不入库
+weekly.config.json
+
+# 预览与运行产物
+.preview/
+preview.html
+.publish-history.jsonl
+
+# Python
+__pycache__/
+*.py[cod]
+
+# 系统与编辑器
+.DS_Store
+.idea/
+.vscode/

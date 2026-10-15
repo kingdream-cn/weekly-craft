@@ -1,0 +1,54 @@
+{
+  "_preset": "embodied-ai-weekly",
+  "_comment": "官方预设：具身智能周刊风格（5 板块 + 6 色卡片 + 三字段条目）。用法：在你的 weekly.config.json 中写 {\"extends\": \"embodied-ai-weekly\", ...} 并按需覆盖 site_name / repo 等字段。",
+  "site_name": "2026具身周刊",
+  "title_template": "{site_name} - 第 {number} 期",
+  "issue_filename": "issue-{number}.md",
+  "issues_subdir": "issues",
+  "sections": [
+    { "heading": "💡 行业洞察", "card_types": ["insight"] },
+    { "heading": "📚 精选教程 & 学习资源", "card_types": ["tutorial"] },
+    { "heading": "🛠️ 开源项目 & 行业案例", "card_types": ["opensource", "practice"] },
+    { "heading": "🛒 硬件测评 & 选型雷达", "card_types": ["review"] },
+    { "heading": "📑 顶会前沿 & 论文速递", "card_types": ["paper"] }
+  ],
+  "separator": "---",
+  "empty_section_placeholder": "> *本期暂无收录。*",
+  "quote_line_template": "> 📅 **发布时间**：{date} &nbsp;|&nbsp; 🏷️ **核心议题**：{topics}",
+  "entry": {
+    "required_fields": ["核心亮点", "团队参考", "载体"],
+    "field_aliases": { "核心创新": "核心亮点" },
+    "tag_required": true,
+    "carrier_field": "载体",
+    "carrier_pattern": "^.+ · \\d+ 分钟(速读|速览|精读)$"
+  },
+  "card": {
+    "containers": true,
+    "colors": {
+      "insight":    { "bg": "#fff8e6", "border": "#f3e3bd", "dark_bg": "#2a2416", "dark_border": "#3d351f" },
+      "tutorial":   { "bg": "#f7f8fa", "border": "#e8eaee", "dark_bg": "#1f2228", "dark_border": "#2a2e36" },
+      "opensource": { "bg": "#fff0f3", "border": "#f5d8df", "dark_bg": "#2a2024", "dark_border": "#3d2c32" },
+      "practice":   { "bg": "#eef4ff", "border": "#d7e5f7", "dark_bg": "#20263a", "dark_border": "#2c3654" },
+      "review":     { "bg": "#f4f1ff", "border": "#ded6f2", "dark_bg": "#262038", "dark_border": "#352c4e" },
+      "paper":      { "bg": "#e9f7f0", "border": "#cfeade", "dark_bg": "#1c2a24", "dark_border": "#294034" }
+    }
+  },
+  "frontmatter": {
+    "required": ["title", "date", "description", "tags"],
+    "tags_min": 3,
+    "tags_max": 5,
+    "description_max_chars": 80
+  },
+  "quote_max_chars": 125,
+  "persona": "",
+  "dedup": {
+    "title_threshold": 0.85,
+    "url_strip_params": ["utm_*", "spm", "vd_source"]
+  },
+  "sources": {
+    "arxiv_categories": ["cs.RO", "cs.CV"],
+    "github_topics": ["robotics", "embodied-ai"],
+    "sites": ["bilibili.com", "leiphone.com", "jiqizhixin.com"]
+  },
+  "repo": { "remote": "", "branch": "main", "workdir": "" }
+}

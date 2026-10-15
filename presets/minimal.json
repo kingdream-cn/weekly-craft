@@ -1,0 +1,38 @@
+{
+  "_preset": "minimal",
+  "_comment": "显式化的中性默认风格，供在此基础上修改出自己的风格。所有字段与内置默认一致，删除某字段即回落到内置默认。",
+  "site_name": "周刊",
+  "title_template": "{site_name} - 第 {number} 期",
+  "issue_filename": "issue-{number}.md",
+  "issues_subdir": "issues",
+  "sections": [
+    { "heading": "本周要点", "card_types": [] },
+    { "heading": "内容精选", "card_types": [] },
+    { "heading": "工具与项目", "card_types": [] }
+  ],
+  "separator": "---",
+  "empty_section_placeholder": "> *本期暂无收录。*",
+  "quote_line_template": "",
+  "entry": {
+    "required_fields": ["摘要"],
+    "field_aliases": {},
+    "tag_required": false,
+    "carrier_field": "",
+    "carrier_pattern": ""
+  },
+  "card": { "containers": false, "colors": {} },
+  "frontmatter": {
+    "required": ["title", "date", "description", "tags"],
+    "tags_min": 0,
+    "tags_max": 0,
+    "description_max_chars": 0
+  },
+  "quote_max_chars": 0,
+  "persona": "",
+  "dedup": {
+    "title_threshold": 0.85,
+    "url_strip_params": ["utm_*", "spm", "vd_source"]
+  },
+  "sources": { "arxiv_categories": [], "github_topics": [], "sites": [] },
+  "repo": { "remote": "", "branch": "main", "workdir": "" }
+}
