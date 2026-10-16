@@ -1,7 +1,7 @@
 # weekly-craft
 
 周刊生成与排版风格 Agent Skill：把自由格式草稿变成规范化周刊 issue，
-覆盖 取号 → 转换 → 校验 → 去重 → 预览 → 安全发布 全流程。
+覆盖 取号 → 素材池 → 转换 → 校验 → 去重 → 预览 → 安全发布 全流程。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![tests](https://github.com/kingdream-cn/weekly-craft/actions/workflows/test.yml/badge.svg)](https://github.com/kingdream-cn/weekly-craft/actions/workflows/test.yml)
@@ -19,6 +19,7 @@
 - **单文件 HTML 预览**：内联 CSS、暗色模式、card 配色按配置注入，无站点也能目检排版；附「本期统计」块（板块条目分布 + 必填字段完整度，纯 CSS 无依赖，仅预览可见）
 - **两段式安全发布**：默认 dry-run，`--push` 需人工确认；期号冲突/脏工作区/rebase 冲突三重拒绝；无 force push 入口；`.publish-history.jsonl` 审计
 - **素材抓取（可选）**：arXiv Atom API 周候选论文、GitHub Search API 周趋势仓库
+- **本地素材池（手搓友好）**：候选先落盘成单文件 md 素材池，人工润色（视频条目可抓 B 站标题/UP/时长后手改），再确定性搬回 issue 骨架；缺字段不猜、留空交给校验器报出
 - **零依赖**：全部脚本仅用 Python 3.9+ 标准库
 
 ## 快速开始
@@ -35,6 +36,20 @@ python3 scripts/preview.py issues/issue-1.md --open
 
 # 4. 发布（先 dry-run 看报告，确认后 --push）
 python3 scripts/publish.py issues/issue-1.md --repo-dir /path/to/weekly-repo
+```
+
+想先人工润色（尤其视频/图文条目不放心全交给 agent）时，走「素材池」旁路：
+
+```bash
+# 1. 建池并导入候选（可喂 fetch_arxiv / fetch_github_trends / dedup_urls 的纯文本输出）
+python3 scripts/new_pool.py --number 44 --from candidates.txt
+
+# 2.（可选）抓 B 站视频元信息成池条目
+python3 scripts/fetch_bilibili.py BV1diGX6rEN5 --pool sources/issue-44-pool.md --section "📚 精选教程 & 学习资源"
+
+# 3. 手搓：把 [ ] 改成 [x]、补字段、用「- 板块：」归类
+# 4. 确定性搬成 issue 骨架（缺字段不猜，留空交给 validate）
+python3 scripts/pool_to_issue.py sources/issue-44-pool.md
 ```
 
 在你的周刊工作目录放一个 `weekly.config.json` 即可定制一切：
@@ -107,11 +122,11 @@ cp -r weekly-craft ~/.qoder-cn/skills/weekly-craft   # 或 ln -s
 ```
 weekly-craft/
 ├── SKILL.md              # agent 入口（工作流/速查表/红线）
-├── scripts/              # 8 个零依赖 Python 脚本
+├── scripts/              # 11 个零依赖 Python 脚本
 ├── presets/              # 官方预设
 ├── references/           # 深度文档（按需加载）
 ├── assets/               # 模板/样式/card 规范
-├── tests/                # 单测 + 四 golden + 15 坏样本
+├── tests/                # 单测（common+pool） + 四 golden + 15 坏样本
 └── config.example.json
 ```
 
@@ -147,7 +162,7 @@ A: 默认 dry-run 只打印报告；`--push` 前脚本展示 remote/branch/文�
 无 force push 入口；每次尝试写审计日志。
 
 **Q: 可以只用其中某个脚本吗？**
-A: 可以，8 个脚本相互独立（共享 `_common.py`），单独调用即可。
+A: 可以，11 个脚本相互独立（共享 `_common.py`），单独调用即可。
 
 ## License
 

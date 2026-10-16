@@ -26,6 +26,8 @@
 | `title_template` | `"{site_name} - 第 {number} 期"` | 占位符 `{site_name}` `{number}` |
 | `issue_filename` | `"issue-{number}.md"` | 文件名模板，占位符 `{number}` |
 | `issues_subdir` | `"issues"` | 仓库内期刊目录 |
+| `pool_dir` | `"sources"` | 素材池目录 |
+| `pool_filename` | `"issue-{number}-pool.md"` | 素材池文件名模板，占位符 `{number}` |
 | `sections` | 3 个中性板块 | 数组，元素 `{heading, card_types[]}`；heading 逐字匹配（校验前 NFC）；card_types 为该板块允许的 card type（空=不允许/不校验） |
 | `separator` | `"---"` | 板块分隔线 |
 | `empty_section_placeholder` | `"> *本期暂无收录。*"` | 空板块占位行 |

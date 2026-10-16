@@ -9,7 +9,7 @@ research 阶段的目标：产出一份**去重后的候选清单**（`candidate
 |---|---|---|
 | 论文 | `scripts/fetch_arxiv.py` | arXiv Atom API；配置 `sources.arxiv_categories`（如 `["cs.RO","cs.CV"]`）；`--query` 可传任意 arXiv 查询式，`--days` 控制回溯窗口 |
 | 开源项目 | `scripts/fetch_github_trends.py` | GitHub Search API `created:>CUTOFF topic:...` 按 star 排序；`--topic` 可多次；`--min-stars` 过滤；设 `GITHUB_TOKEN` 提高限速 |
-| 中文视频/图文 | agent 用 WebSearch/WebFetch | B 站、公众号、机器之心、量子位等；见下"检索式模板" |
+| 中文视频/图文 | agent 用 WebSearch/WebFetch + `scripts/fetch_bilibili.py` | B 站、公众号、机器之心、量子位等；视频条目的标题/UP/时长用 `fetch_bilibili.py` 抓（见下） |
 | 官方博客/Release | WebFetch | 已知重点项目的 blog/changelog 页直接抓 |
 
 配置 `sources.sites` 是手工来源清单（名称 + URL + 备注），agent 在 research 时逐个过一遍。
@@ -74,6 +74,24 @@ python3 scripts/fetch_github_trends.py --topic manipulation --topic vla --min-st
   改查询为 `topic:xxx pushed:>CUTOFF`（脚本目前用 created，可按需 --query 思路自行扩展）。
 - 无 token 时限速 60 req/h，脚本会 WARN；批量抓取前先 `export GITHUB_TOKEN=...`。
 
+## 落盘素材池（手搓友好，可选）
+
+如果这一期想自己动手润色（视频条目尤其如此），不要把候选直接写进 issue，
+先用 `new_pool.py` 落成一份本地单文件池子，手搓后用 `pool_to_issue.py` 确定性搬回骨架：
+
+```bash
+# 建池并把上一步的候选清单导入到「待归类」
+python3 scripts/new_pool.py --number 44 --from candidates.txt
+# B 站视频：抓标题/UP/时长，追加到指定板块（板块标题需与预设一致）
+python3 scripts/fetch_bilibili.py 'https://www.bilibili.com/video/BV1diGX6rEN5' \
+    --pool sources/issue-44-pool.md --section "📚 精选教程 & 学习资源"
+```
+
+- B 站元信息走 `api.bilibili.com/x/web-interface/view?bvid=<BV>`，**免登录**、大陆可直连；
+  脚本带 UA/Referer 与 3 次退避重试，失败 exit 1；无效 BV 返回 `code=-400`。
+- 抓回来的是骨架（标题/来源/时长），`类型/标签/时长` 之外的语义字段仍由你手搓填写。
+- 池子格式与字段约定、`[x]` 勾选与 `- 板块：` 归类规则见 `references/workflow.md` 的 pool 段。
+
 ## 去重策略（必须执行）
 
 ```bash
@@ -94,6 +112,7 @@ python3 scripts/dedup_urls.py --candidates candidates.txt --fuzzy \
 - arXiv API（export.arxiv.org）通常可直连但慢；脚本内置 3 次退避重试，仍失败 exit 1，
   可改走镜像（如 `https://xxx.itp.ac.cn/` 类 arXiv 镜像，自行替换 base URL）。
 - GitHub API 时通时断；失败时降级为 WebSearch `site:github.com`。
+- B 站 `api.bilibili.com` 大陆可直连（免登录），视频元信息优先用它而非 WebFetch（后者常被反爬拦截）。
 - npm 相关操作（安装本 Skill 时）先设国内镜像：`npm config set registry https://registry.npmmirror.com`。
 
 ## 质量门槛（进草稿前）

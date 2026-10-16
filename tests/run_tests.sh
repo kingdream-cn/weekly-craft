@@ -7,6 +7,7 @@ FAIL=0
 
 echo "== unit tests =="
 $PY tests/test_common.py 2>&1 | tail -1 || FAIL=1
+$PY tests/test_pool.py 2>&1 | tail -1 || FAIL=1
 
 echo "== golden: neutral (zero config) =="
 $PY scripts/validate_issue.py tests/golden/neutral-issue.md || FAIL=1

@@ -18,20 +18,14 @@ import next_number  # noqa: E402
 TEMPLATE_PATH = c.SKILL_ROOT / "assets" / "issue-template.md"
 
 
-def render(cfg: dict, number: int, issue_date: str, description: str, topics: str, tags: list) -> str:
+def render_document(cfg: dict, title: str, issue_date: str, description: str, topics: str, tags: list, sections_block: str) -> str:
     template = TEMPLATE_PATH.read_text(encoding="utf-8")
-    title = c.title_for_number(number, cfg)
     quote_line = cfg.get("quote_line_template", "")
     quote_block = ""
     if quote_line:
         quote_block = quote_line.replace("{date}", issue_date).replace("{topics}", topics) + "\n\n"
     tags_block = "\n".join(f"  - {tag}" for tag in tags)
-    placeholder = cfg["empty_section_placeholder"]
     separator = cfg.get("separator", "---")
-    blocks = []
-    for section in cfg["sections"]:
-        blocks.append(f"## {section['heading']}\n\n{placeholder}")
-    sections_block = f"\n\n{separator}\n\n".join(blocks)
     return (
         template.replace("{title}", title)
         .replace("{date}", issue_date)
@@ -41,6 +35,17 @@ def render(cfg: dict, number: int, issue_date: str, description: str, topics: st
         .replace("{separator}", separator)
         .replace("{sections_block}", sections_block)
     )
+
+
+def render(cfg: dict, number: int, issue_date: str, description: str, topics: str, tags: list) -> str:
+    title = c.title_for_number(number, cfg)
+    placeholder = cfg["empty_section_placeholder"]
+    separator = cfg.get("separator", "---")
+    blocks = []
+    for section in cfg["sections"]:
+        blocks.append(f"## {section['heading']}\n\n{placeholder}")
+    sections_block = f"\n\n{separator}\n\n".join(blocks)
+    return render_document(cfg, title, issue_date, description, topics, tags, sections_block)
 
 
 def main() -> int:

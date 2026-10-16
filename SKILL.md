@@ -1,6 +1,6 @@
 ---
 name: weekly-craft
-description: 周刊生成与排版风格引擎。将自由格式草稿转换为规范化周刊 issue（frontmatter + 板块 + card 容器），并提供脚手架、格式校验（E01–E16/W01–W05）、跨期 URL 去重、单文件 HTML 预览、arXiv/GitHub 趋势素材抓取，以及 dry-run 默认的两段式安全发布到 GitHub Pages 仓库。当用户要新建/转换/校验/预览/发布周刊，或要为周刊定制风格预设（presets + extends）时使用。零配置即中性默认，可直接用于任何周刊站点。
+description: 周刊生成与排版风格引擎。将自由格式草稿转换为规范化周刊 issue（frontmatter + 板块 + card 容器），并提供脚手架、格式校验（E01–E16/W01–W05）、跨期 URL 去重、单文件 HTML 预览、arXiv/GitHub 趋势素材抓取、本地素材池（搜集落盘 → 手搓 → 确定性搬回骨架，含 B 站视频元信息抓取），以及 dry-run 默认的两段式安全发布到 GitHub Pages 仓库。当用户要新建/转换/校验/预览/发布周刊，或要为周刊定制风格预设（presets + extends）时使用。零配置即中性默认，可直接用于任何周刊站点。
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, WebFetch, WebSearch
 argument-hint: "[new|convert|validate|preview|publish] [draft-path]"
 ---
@@ -19,8 +19,8 @@ argument-hint: "[new|convert|validate|preview|publish] [draft-path]"
 
 ## 工作流（状态机）
 
-research → draft → convert → validate → preview → confirm → publish → verify-CI
-各阶段产物、断点续跑见 `references/workflow.md`。
+research → pool → draft → convert → validate → preview → confirm → publish → verify-CI
+各阶段产物、断点续跑见 `references/workflow.md`。pool 为可选旁路：先落盘素材池手搓，再确定性生成骨架。
 
 ## 脚本速查表
 
@@ -30,6 +30,9 @@ research → draft → convert → validate → preview → confirm → publish 
 |---|---|---|
 | `scripts/new_issue.py` | 生成 issue 脚手架（自动取号） | `python3 scripts/new_issue.py --date 2026-10-15` |
 | `scripts/next_number.py` | 查询下一期号（本地或 GitHub 只读） | `python3 scripts/next_number.py --remote owner/repo` |
+| `scripts/new_pool.py` | 建素材池 / 导入候选清单（落盘待手搓） | `python3 scripts/new_pool.py --from candidates.txt` |
+| `scripts/fetch_bilibili.py` | 抓 B 站视频元信息（标题/UP/时长）成池条目 | `python3 scripts/fetch_bilibili.py BV1xx --pool sources/issue-44-pool.md --section "📚 精选教程 & 学习资源"` |
+| `scripts/pool_to_issue.py` | 素材池 → issue 骨架（确定性搬运，缺字段列出） | `python3 scripts/pool_to_issue.py sources/issue-44-pool.md` |
 | `scripts/validate_issue.py` | 格式校验（agent 与 CI 共用） | `python3 scripts/validate_issue.py issues/issue-43.md` |
 | `scripts/dedup_urls.py` | 候选 URL 跨期去重（可 `--fuzzy`） | `python3 scripts/dedup_urls.py --candidates urls.txt` |
 | `scripts/fetch_arxiv.py` | arXiv 周候选论文 | `python3 scripts/fetch_arxiv.py --days 7` |
@@ -83,14 +86,22 @@ W01 引文超长 / W02 文内 URL 重复 / W03 字段格式惯用式 / W04 perso
 - **板块变体**：只覆盖 `sections`（列表整体替换，需写全）即可换板块，配色/字段/阈值靠 extends 继承。
 - 新建预设并提交上游的流程见 `references/presets-guide.md`。
 
-## 素材搜集（research 阶段，可选）
+## 素材搜集与落盘（research / pool 阶段，可选）
 
-来源清单、API 查询式、去重策略与大陆网络注意事项见 `references/content-sourcing.md`。
-原则：候选先过 `dedup_urls.py`，再进入草稿。
+来源清单、API 查询式、七方向检索关键词、去重策略与大陆网络注意事项见 `references/content-sourcing.md`。
+原则：候选先过 `dedup_urls.py`，再进入草稿或素材池。
+
+**素材池（手搓友好）**：需要人工润色（尤其视频条目）时，先把候选落盘成本地单文件 md 池子：
+
+1. `new_pool.py` 建池并把 `fetch_arxiv/fetch_github_trends/dedup_urls` 的纯文本输出导入到「待归类」板块。
+2. 你手搓：把条目的 `[ ]` 改成 `[x]`；补 `- 键：值` 字段；用 `- 板块：<板块名>` 归类（或直接移到对应板块）。
+   视频条目可用 `fetch_bilibili.py <BV> --pool <池> --section <板块>` 抓标题/UP/时长后手改。
+3. `pool_to_issue.py` 确定性搬骨架：只搬 `[x]` 条目，缺字段**不猜**、留空由 validate 报出，再交给 agent 补写摘要/亮点。
+   格式细节与字段约定见 `references/workflow.md`。
 
 ## Resources
 
 - `references/`：style-guide / workflow / publishing / presets-guide / content-sourcing（按需加载）
 - `assets/issue-template.md`（脚手架模板）、`assets/preview-style.css`（预览基础样式）、
   `assets/card-spec.md`（card 容器语法说明）
-- `tests/run_tests.sh`：单测 + 三 golden + 坏样本回归（改动任何脚本/预设后必须先跑通）
+- `tests/run_tests.sh`：单测（common + pool）+ 四 golden + 坏样本回归（改动任何脚本/预设后必须先跑通）

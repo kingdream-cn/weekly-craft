@@ -18,6 +18,8 @@ DEFAULTS = {
     "title_template": "{site_name} - 第 {number} 期",
     "issue_filename": "issue-{number}.md",
     "issues_subdir": "issues",
+    "pool_dir": "sources",
+    "pool_filename": "issue-{number}-pool.md",
     "sections": [
         {"heading": "本周要点", "card_types": []},
         {"heading": "内容精选", "card_types": []},
@@ -324,6 +326,10 @@ def issue_number_from_filename(name: str, cfg: dict):
 
 def filename_for_number(number: int, cfg: dict) -> str:
     return cfg["issue_filename"].replace("{number}", str(number))
+
+
+def pool_filename_for_number(number: int, cfg: dict) -> str:
+    return cfg["pool_filename"].replace("{number}", str(number))
 
 
 def title_for_number(number: int, cfg: dict) -> str:
