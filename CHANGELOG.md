@@ -9,7 +9,22 @@
 ## [Unreleased]
 
 ### Added
-- 待发布项在此累积。
+- **本地素材池链路**（`scripts/_pool.py`、`new_pool.py`、`pool_to_issue.py`、
+  `fetch_bilibili.py`）：候选先落盘成单文件 md 池子，人工润色后用脚本确定性搬回 issue 骨架；
+  `[x]` 勾选入选、`- 键：值` 字段、`- 板块：` 归类；缺字段不猜、留空交校验器。
+- `scripts/fetch_bilibili.py`：抓 B 站视频标题/UP/时长（免登录 API），可 `--pool ... --section ...`
+  追加到指定板块。
+- 配置新增 `pool_dir`（默认 `"sources"`）与 `pool_filename`（默认 `"issue-{number}-pool.md"`）。
+- 预设 `presets/embodied-ai-weekly-legacy.json`：`embodied-ai-weekly` 的**板块变体**示例
+  （仅覆盖 `sections`，其余全继承）。
+- `preview.py` 增加「本期统计」块（板块条目分布 + 必填字段完整度，纯 CSS，仅预览可见）。
+- 工程质量：`.github/workflows/test.yml`（Python 3.9–3.12 矩阵 CI）、`tests/test_common.py` /
+  `tests/test_pool.py` 单测、四份 golden、`CONTRIBUTING.md`、Issue/PR 模板。
+
+### Changed
+- `scripts/new_issue.py` 抽出 `render_document()`，供 `pool_to_issue.py` 复用，保证池骨架与
+  脚手架格式逐字一致。
+- `tests/run_tests.sh` 回归扩展为「单测（common + pool）+ 四 golden + 15 坏样本」。
 
 ## [0.1.0] - 2026-10-15
 
