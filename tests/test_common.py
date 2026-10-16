@@ -18,6 +18,7 @@ sys.path.insert(0, str(REPO / "scripts"))
 
 import _common as c  # noqa: E402
 import dedup_urls  # noqa: E402
+import preview  # noqa: E402
 
 
 class TempCwdTest(unittest.TestCase):
@@ -179,6 +180,41 @@ class TestDedupNormalize(unittest.TestCase):
     def test_root_slash_kept(self):
         norm = dedup_urls.normalize("https://example.com/", self.cfg)
         self.assertEqual(norm, "https://example.com/")
+
+
+class TestPreviewStats(unittest.TestCase):
+    TEXT = (
+        '---\ntitle: "周刊 - 第 1 期"\ndate: 2026-01-01\ndescription: d\n'
+        "tags:\n  - 甲\n  - 乙\n---\n\n# 周刊 - 第 1 期\n\n"
+        "## 本周要点\n\n"
+        "### 1. [标签] [A](https://example.com/a)\n\n- **摘要：** x\n\n"
+        "### 2. [标签] [B](https://example.com/b)\n\n- **摘要：** y\n\n"
+        "## 内容精选\n\n> *本期暂无收录。*\n"
+    )
+
+    def test_counts_entries_per_section(self):
+        doc, stats = preview.render(self.TEXT, c.DEFAULTS)
+        self.assertEqual(stats["sections"], 2)
+        self.assertEqual(stats["entries"], 2)
+        self.assertEqual(
+            stats["section_items"],
+            [{"heading": "本周要点", "entries": 2}, {"heading": "内容精选", "entries": 0}],
+        )
+        self.assertIn("本期统计", doc)
+        self.assertIn("摘要 2/2", doc)
+
+    def test_coverage_uses_field_aliases(self):
+        cfg = c.deep_merge(
+            c.DEFAULTS,
+            {"entry": {"required_fields": ["核心亮点"], "field_aliases": {"核心创新": "核心亮点"}}},
+        )
+        doc, _ = preview.render(self.TEXT.replace("摘要", "核心创新"), cfg)
+        self.assertIn("核心亮点 2/2", doc)
+
+    def test_stats_skipped_when_no_sections(self):
+        doc, stats = preview.render("# 周刊 - 第 1 期\n", c.DEFAULTS)
+        self.assertEqual(stats["sections"], 0)
+        self.assertNotIn("本期统计", doc)
 
 
 if __name__ == "__main__":

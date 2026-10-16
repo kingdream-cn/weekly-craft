@@ -34,7 +34,7 @@ research → draft → convert → validate → preview → confirm → publish 
 | `scripts/dedup_urls.py` | 候选 URL 跨期去重（可 `--fuzzy`） | `python3 scripts/dedup_urls.py --candidates urls.txt` |
 | `scripts/fetch_arxiv.py` | arXiv 周候选论文 | `python3 scripts/fetch_arxiv.py --days 7` |
 | `scripts/fetch_github_trends.py` | GitHub 周趋势仓库 | `python3 scripts/fetch_github_trends.py --topic robotics` |
-| `scripts/preview.py` | 单文件 HTML 预览 | `python3 scripts/preview.py issue.md --open` |
+| `scripts/preview.py` | 单文件 HTML 预览（含「本期统计」：板块条目分布+字段完整度） | `python3 scripts/preview.py issue.md --open` |
 | `scripts/publish.py` | 安全发布（默认 dry-run） | `python3 scripts/publish.py issue.md`（确认后加 `--push`） |
 
 常用旗标：`--config` 指定配置；validate `--strict`（警告即失败）/`--with-history`（E16 跨期）；

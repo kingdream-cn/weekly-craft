@@ -13,6 +13,7 @@ import html
 import re
 import subprocess
 import sys
+from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -67,6 +68,44 @@ def injected_colors(cfg: dict) -> str:
     return out
 
 
+def render_stats(sections: list, field_counts: Counter, meta: dict, cfg: dict) -> str:
+    """Render the preview-only stats block (counts + per-section bars + field coverage)."""
+    if not sections:
+        return ""
+    aliases = cfg.get("entry", {}).get("field_aliases", {}) or {}
+    resolved: dict = {}
+    for label, count in field_counts.items():
+        name = aliases.get(label, label)
+        resolved[name] = resolved.get(name, 0) + count
+    total = sum(item["entries"] for item in sections)
+    peak = max([item["entries"] for item in sections] + [1])
+    tags = meta.get("tags") if isinstance(meta.get("tags"), list) else []
+    tiles = [(total, "条目"), (len(sections), "板块"), (len(tags), "tags")]
+    parts = [
+        '<section class="stats">',
+        '<p class="stats-note">📊 本期统计 · 仅预览可见，不写入 issue</p>',
+        '<div class="stats-grid">',
+    ]
+    for number, label in tiles:
+        parts.append(f'<div class="stat"><span class="stat-num">{number}</span><span class="stat-label">{label}</span></div>')
+    parts.append("</div>")
+    parts.append('<ul class="bar-list">')
+    for item in sections:
+        width = round(item["entries"] / peak * 100)
+        parts.append(
+            f'<li><span class="bar-label">{html.escape(item["heading"])}</span>'
+            f'<span class="bar-track"><span class="bar" style="width:{width}%"></span></span>'
+            f'<span class="bar-num">{item["entries"]}</span></li>'
+        )
+    parts.append("</ul>")
+    required = cfg.get("entry", {}).get("required_fields", []) or []
+    if required and total:
+        coverage = " · ".join(f'{html.escape(name)} {resolved.get(name, 0)}/{total}' for name in required)
+        parts.append(f'<p class="field-coverage">必填字段完整度：{coverage}</p>')
+    parts.append("</section>")
+    return "\n".join(parts)
+
+
 def render(text: str, cfg: dict):
     meta, body = c.parse_frontmatter(text)
     meta = meta or {}
@@ -76,6 +115,9 @@ def render(text: str, cfg: dict):
     skipped = 0
     sections = 0
     cards = 0
+    entries = 0
+    section_items: list = []
+    field_counts: Counter = Counter()
     in_card = False
     in_pre = False
     pre_buffer: list = []
@@ -144,16 +186,21 @@ def render(text: str, cfg: dict):
             flush_paragraph()
             seen_h2 = True
             sections += 1
+            section_items.append({"heading": stripped[3:].strip(), "entries": 0})
             out.append(f"<h2>{inline(stripped[3:])}</h2>")
             continue
         if stripped.startswith("### "):
             flush_paragraph()
+            if section_items:
+                section_items[-1]["entries"] += 1
+                entries += 1
             out.append(f"<h3>{inline(stripped[4:])}</h3>")
             continue
         field = FIELD_BULLET_RE.match(stripped)
         if field:
             flush_paragraph()
             label = field.group("label").strip().rstrip("：:")
+            field_counts[label] += 1
             out.append(f'<p class="field"><strong>{html.escape(label)}：</strong> {inline(field.group("rest"))}</p>')
             continue
         if stripped == placeholder:
@@ -186,16 +233,25 @@ def render(text: str, cfg: dict):
         header.append(f'<div class="meta">{inline(str(meta["description"]))}</div>')
     css = CSS_PATH.read_text(encoding="utf-8") + "\n" + injected_colors(cfg)
     title = html.escape(str(meta.get("title") or "周刊预览"))
+    stats_html = render_stats(section_items, field_counts, meta, cfg)
+    head_blocks = header + ([stats_html] if stats_html else [])
     document = (
         "<!DOCTYPE html>\n<html lang=\"zh-CN\">\n<head>\n<meta charset=\"utf-8\">\n"
         "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n"
         f"<title>{title}</title>\n<style>\n{css}\n</style>\n</head>\n<body>\n<div class=\"page\">\n"
-        + "\n".join(header)
+        + "\n".join(head_blocks)
         + "\n"
         + "\n".join(out)
         + '\n<div class="footer">weekly-craft 本地预览 · 最终效果以站点构建为准</div>\n</div>\n</body>\n</html>\n'
     )
-    return document, {"sections": sections, "cards": cards, "skipped": skipped, "warnings": warnings}
+    return document, {
+        "sections": sections,
+        "entries": entries,
+        "section_items": section_items,
+        "cards": cards,
+        "skipped": skipped,
+        "warnings": warnings,
+    }
 
 
 def main() -> int:
@@ -218,7 +274,7 @@ def main() -> int:
     out.write_text(document, encoding="utf-8")
     for lineno, message in stats["warnings"]:
         print(f"[WARN] preview: {message} (line {lineno})")
-    print(f"已生成 {out.resolve()} — {stats['sections']} sections, {stats['cards']} cards, {stats['skipped']} skipped blocks")
+    print(f"已生成 {out.resolve()} — {stats['sections']} sections, {stats['entries']} entries, {stats['cards']} cards, {stats['skipped']} skipped blocks")
     if args.open:
         subprocess.Popen(["xdg-open", str(out.resolve())], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if args.strict and stats["skipped"]:
