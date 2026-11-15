@@ -1,0 +1,17 @@
+{
+  "extends": "embodied-ai-weekly",
+  "_comment": "现役网站七类；空栏目可省略，不要求标签、阅读时长或固定摘要长度。保留原五板块预设兼容历史。",
+  "sections_optional": true,
+  "sections": [
+    {"heading": "💡 行业洞察", "card_types": ["insight"]},
+    {"heading": "📚 精选教程 & 学习资源", "card_types": ["tutorial"]},
+    {"heading": "🛠️ 开源项目 & 行业案例", "card_types": ["opensource"]},
+    {"heading": "⚙️ 工程实战 & 踩坑记录", "card_types": ["practice"]},
+    {"heading": "🛒 硬件测评 & 选型雷达", "card_types": ["review"]},
+    {"heading": "☕ 极客茶水间 & 脑暴碰撞", "card_types": ["lounge"]},
+    {"heading": "📑 顶会前沿 & 论文速递", "card_types": ["paper"]}
+  ],
+  "entry": {"tag_required": false, "carrier_pattern": ""},
+  "frontmatter": {"tags_min": 1, "tags_max": 0, "description_max_chars": 0},
+  "quote_max_chars": 0
+}

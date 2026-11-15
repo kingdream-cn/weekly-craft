@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>weekly-craft 演示周刊 - 第 1 期</title>
+<style>
+/* weekly-craft preview 基础样式（中性）。card 配色由 preview.py 按配置注入。 */
+:root {
+  --page-bg: #ffffff;
+  --page-fg: #1f2328;
+  --muted: #6b7280;
+  --accent: #1677ff;
+  --hr: #e5e7eb;
+  --card-bg: #f7f8fa;
+  --card-border: #eceef2;
+  --code-bg: #f3f4f6;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page-bg: #14161a;
+    --page-fg: #e6e8eb;
+    --muted: #9aa2ad;
+    --hr: #2a2e36;
+    --card-bg: #1f2228;
+    --card-border: #2a2e36;
+    --code-bg: #262a31;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page-bg);
+  color: var(--page-fg);
+  font-family: Inter, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+  line-height: 1.75;
+}
+.page { max-width: 860px; margin: 0 auto; padding: 48px 24px 96px; }
+.meta { color: var(--muted); font-size: 14px; margin-bottom: 8px; }
+.meta .tag {
+  display: inline-block; border: 1px solid var(--hr); border-radius: 999px;
+  padding: 1px 10px; margin-right: 6px; font-size: 12px;
+}
+h1 { font-size: 30px; line-height: 1.3; margin: 8px 0 12px; }
+h2 { font-size: 22px; margin: 40px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--hr); }
+h3 { font-size: 17px; line-height: 1.5; margin: 20px 0 10px; }
+h3 a { color: var(--page-fg); text-decoration: none; }
+h3 a:hover { color: var(--accent); text-decoration: underline; }
+hr { border: none; border-top: 1px solid var(--hr); margin: 28px 0; }
+a { color: var(--accent); }
+.quote-line {
+  background: var(--card-bg); border: 1px solid var(--card-border);
+  border-radius: 8px; padding: 10px 14px; color: var(--muted); font-size: 14px;
+}
+.news-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 4px 20px 12px;
+  margin: 16px 0;
+}
+.news-card .field { margin: 6px 0; }
+.news-card .field strong { color: var(--page-fg); }
+blockquote.empty { margin: 12px 0; color: var(--muted); }
+.stats {
+  background: var(--card-bg); border: 1px solid var(--card-border);
+  border-radius: 10px; padding: 14px 18px 16px; margin: 14px 0 28px;
+}
+.stats-note { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+.stats-grid { display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 12px; }
+.stat { display: flex; align-items: baseline; gap: 6px; }
+.stat-num { font-size: 22px; font-weight: 600; }
+.stat-label { color: var(--muted); font-size: 13px; }
+.bar-list { list-style: none; margin: 0; padding: 0; font-size: 13px; }
+.bar-list li { display: flex; align-items: center; gap: 10px; margin: 5px 0; }
+.bar-label { flex: 0 0 200px; color: var(--muted); }
+.bar-track { flex: 1 1 auto; height: 8px; background: var(--hr); border-radius: 999px; overflow: hidden; }
+.bar { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+.bar-num { flex: 0 0 24px; text-align: right; color: var(--muted); }
+.field-coverage { margin: 12px 0 0; color: var(--muted); font-size: 13px; }
+@media (max-width: 560px) {
+  .page { padding: 32px 16px 72px; }
+  h1 { font-size: 24px; }
+  .bar-label { flex-basis: 120px; }
+}
+@media print {
+  .stats { display: none; }
+  .footer { display: none; }
+}
+code {
+  background: var(--code-bg); border-radius: 4px; padding: 1px 5px;
+  font-size: 0.9em;
+}
+pre.skipped {
+  background: var(--code-bg); border: 1px dashed var(--card-border);
+  border-radius: 8px; padding: 12px; overflow-x: auto; font-size: 13px;
+}
+.footer { margin-top: 48px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--hr); padding-top: 16px; }
+
+.news-card.card-insight{--card-bg:#fff8e6;--card-border:#f3e3bd}
+.news-card.card-tutorial{--card-bg:#f7f8fa;--card-border:#e8eaee}
+.news-card.card-opensource{--card-bg:#fff0f3;--card-border:#f5d8df}
+.news-card.card-practice{--card-bg:#eef4ff;--card-border:#d7e5f7}
+.news-card.card-review{--card-bg:#f4f1ff;--card-border:#ded6f2}
+.news-card.card-paper{--card-bg:#e9f7f0;--card-border:#cfeade}
+@media (prefers-color-scheme: dark) {
+.news-card.card-insight{--card-bg:#2a2416;--card-border:#3d351f}
+.news-card.card-tutorial{--card-bg:#1f2228;--card-border:#2a2e36}
+.news-card.card-opensource{--card-bg:#2a2024;--card-border:#3d2c32}
+.news-card.card-practice{--card-bg:#20263a;--card-border:#2c3654}
+.news-card.card-review{--card-bg:#262038;--card-border:#352c4e}
+.news-card.card-paper{--card-bg:#1c2a24;--card-border:#294034}
+}
+</style>
+</head>
+<body>
+<div class="page">
+<div class="meta">📅 2026-11-16</div>
+<div class="meta"><span class="tag">演示</span><span class="tag">工程实践</span><span class="tag">周刊编辑</span></div>
+<div class="meta">使用虚构资料展示从候选素材到审核表、周刊正文和预览的完整过程。</div>
+<section class="stats">
+<p class="stats-note">📊 本期统计 · 仅预览可见，不写入 issue</p>
+<div class="stats-grid">
+<div class="stat"><span class="stat-num">2</span><span class="stat-label">条目</span></div>
+<div class="stat"><span class="stat-num">2</span><span class="stat-label">板块</span></div>
+<div class="stat"><span class="stat-num">3</span><span class="stat-label">tags</span></div>
+</div>
+<ul class="bar-list">
+<li><span class="bar-label">🛠️ 开源项目 &amp; 行业案例</span><span class="bar-track"><span class="bar" style="width:100%"></span></span><span class="bar-num">1</span></li>
+<li><span class="bar-label">📑 顶会前沿 &amp; 论文速递</span><span class="bar-track"><span class="bar" style="width:100%"></span></span><span class="bar-num">1</span></li>
+</ul>
+<p class="field-coverage">必填字段完整度：核心亮点 2/2 · 团队参考 2/2 · 载体 2/2</p>
+</section>
+<h1>weekly-craft 演示周刊 - 第 1 期</h1>
+<blockquote class="quote-line">📅 <strong>发布时间</strong>：2026-11-16 &nbsp;|&nbsp; 🏷️ <strong>核心议题</strong>：素材整理、工程参考与负责人审核</blockquote>
+<hr>
+<h2>🛠️ 开源项目 &amp; 行业案例</h2>
+<div class="news-card card-opensource">
+<h3>1. <a href="https://example.com/demo/grasp-benchmark" target="_blank" rel="noopener">仿真抓取评测脚手架</a></h3>
+<p class="field"><strong>核心亮点：</strong> 用统一任务入口整理场景、运行参数与评测记录，让不同方案的实验结果便于比较。</p>
+<p class="field"><strong>团队参考：</strong> 先在小场景复现，再替换为团队任务；记录版本和随机种子。</p>
+<p class="field"><strong>载体：</strong> 开源项目</p>
+</div>
+<hr>
+<h2>📑 顶会前沿 &amp; 论文速递</h2>
+<div class="news-card card-paper">
+<h3>1. <a href="https://example.com/demo/tactile-calibration" target="_blank" rel="noopener">灵巧手触觉标定方法笔记</a></h3>
+<p class="field"><strong>核心亮点：</strong> 把触觉标定流程拆成采集、对齐和验证三个步骤，方便对照自己的传感器方案。</p>
+<p class="field"><strong>团队参考：</strong> 关注标定条件与误差定义，先验证方法是否适用于现有硬件。</p>
+<p class="field"><strong>载体：</strong> 论文</p>
+</div>
+<div class="footer">weekly-craft 本地预览 · 最终效果以站点构建为准</div>
+</div>
+</body>
+</html>

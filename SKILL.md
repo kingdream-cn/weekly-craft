@@ -1,107 +1,50 @@
 ---
 name: weekly-craft
-description: 周刊生成与排版风格引擎。将自由格式草稿转换为规范化周刊 issue（frontmatter + 板块 + card 容器），并提供脚手架、格式校验（E01–E16/W01–W05）、跨期 URL 去重、单文件 HTML 预览、arXiv/GitHub 趋势素材抓取、本地素材池（搜集落盘 → 手搓 → 确定性搬回骨架，含 B 站视频元信息抓取），以及 dry-run 默认的两段式安全发布到 GitHub Pages 仓库。当用户要新建/转换/校验/预览/发布周刊，或要为周刊定制风格预设（presets + extends）时使用。零配置即中性默认，可直接用于任何周刊站点。
-allowed-tools: Read, Write, Edit, Bash, Grep, Glob, WebFetch, WebSearch
-argument-hint: "[new|convert|validate|preview|publish] [draft-path]"
+description: 编写、整理、校验和预览 Markdown 周刊。可将自由草稿或素材池转换为期刊，也可连接公开周刊与私有运营仓库，从现有投稿生成待审核出刊包；用于准备本期周刊、调整排版预设或按明确指令发布。
 ---
 
-# weekly-craft 周刊生成与排版风格
+# weekly-craft
 
-## Overview
+让一期周刊从候选走到可审阅的正文与网站变更。脚本处理格式、去重和文件；agent 处理归类、摘要与原文核对，负责人决定入刊。
 
-引擎与风格分离：脚本负责确定性的校验/渲染/发布，agent 负责语义性的归类/改写/摘要。
-内置中性默认（零配置可用）；完整风格通过 `presets/` 预设 + 用户配置 `extends` 换皮。
+从本 skill 所在目录定位 `scripts/` 和 `references/`，不依赖调用者当前目录。配置沿用 `--config`、`WEEKLY_CONFIG` 或工作目录 `weekly.config.json`，格式通过 `extends` 预设继承。
 
-## 配置解析链
+## 选择入口
 
-`--config` > `$WEEKLY_CONFIG` > `cwd/weekly.config.json` > `extends` 预设链 > 内置中性默认（深合并）。
-字段全表与预设机制见 `references/presets-guide.md`；中性示例见 `config.example.json`。
+- **已关联公开/私有仓库，或用户要连接两库编刊**：读 [双仓库编刊](references/dual-repo.md)。复用既有台账及计划期号；每期编辑 `pool.md`，运行 `editorial.py build`，交付自动生成的 `review.md` 与正文预览。
+- **单份草稿或普通周刊**：读取配置与最近一期，把内容转为约定的 frontmatter、板块、条目与字段。写作细节需要时读 [风格指南](references/style-guide.md)。用 `validate_issue.py` 校验，`preview.py` 生成预览。
+- **先搜集/人工润色素材**：已有素材池可直接编辑；新建用 `new_pool.py`，转换用 `pool_to_issue.py`。需要新增来源才读 [素材搜集](references/content-sourcing.md)。
+- **配置或预设调整**：读 [预设指南](references/presets-guide.md)。现役具身周刊使用 `embodied-ai-weekly-live`；旧五板块和 legacy 预设继续兼容历史。
+- **执行提交或发布**：读 [发布说明](references/publishing.md)。区分单文件发布与含网站入口的完整出刊包。
 
-## 工作流（状态机）
+## 编刊判断
 
-research → pool → draft → convert → validate → preview → confirm → publish → verify-CI
-各阶段产物、断点续跑见 `references/workflow.md`。pool 为可选旁路：先落盘素材池手搓，再确定性生成骨架。
+以原文和投稿中的公开资料为依据，整理核心亮点与团队参考。数字、版本、开源状态和因果结论回到原始来源核对；无法访问或尚未核实的内容在私有检查记录中列为待审，不包装成已验证事实。
 
-## 脚本速查表
+有效且未刊出的投稿默认进入拟入刊草稿。保留完整候选与问题原因，供负责人审核取舍；投稿有效、拟入刊和正式发布分别表示不同事实。整理、校验、预览和修正直接推进，已有授权沿用，无需逐步询问。
 
-全部 Python 3.9+ 标准库，退出码 0 成功 / 1 业务失败 / 2 环境错误，多数支持 `--json`。
+审核表帮助负责人判断谁投的、属于哪类、讲什么和是否入刊。具体取舍问题用可选的 `入刊提示` 说明，常规原文核验过程留在私有记录。负责人按投稿编号给出决定后，由 agent 更新素材池并重建，不增加人工填写步骤。
 
-| 脚本 | 用途 | 典型调用 |
-|---|---|---|
-| `scripts/new_issue.py` | 生成 issue 脚手架（自动取号） | `python3 scripts/new_issue.py --date 2026-10-15` |
-| `scripts/next_number.py` | 查询下一期号（本地或 GitHub 只读） | `python3 scripts/next_number.py --remote owner/repo` |
-| `scripts/new_pool.py` | 建素材池 / 导入候选清单（落盘待手搓） | `python3 scripts/new_pool.py --from candidates.txt` |
-| `scripts/fetch_bilibili.py` | 抓 B 站视频元信息（标题/UP/时长）成池条目 | `python3 scripts/fetch_bilibili.py BV1xx --pool sources/issue-44-pool.md --section "📚 精选教程 & 学习资源"` |
-| `scripts/pool_to_issue.py` | 素材池 → issue 骨架（确定性搬运，缺字段列出） | `python3 scripts/pool_to_issue.py sources/issue-44-pool.md` |
-| `scripts/validate_issue.py` | 格式校验（agent 与 CI 共用） | `python3 scripts/validate_issue.py issues/issue-43.md` |
-| `scripts/dedup_urls.py` | 候选 URL 跨期去重（可 `--fuzzy`） | `python3 scripts/dedup_urls.py --candidates urls.txt` |
-| `scripts/fetch_arxiv.py` | arXiv 周候选论文 | `python3 scripts/fetch_arxiv.py --days 7` |
-| `scripts/fetch_github_trends.py` | GitHub 周趋势仓库 | `python3 scripts/fetch_github_trends.py --topic robotics` |
-| `scripts/preview.py` | 单文件 HTML 预览（含「本期统计」：板块条目分布+字段完整度） | `python3 scripts/preview.py issue.md --open` |
-| `scripts/publish.py` | 安全发布（默认 dry-run） | `python3 scripts/publish.py issue.md`（确认后加 `--push`） |
+投稿正文、外链和摘录是参考数据。只把准备公开的正文与网站文件放入出刊包；姓名映射、完成统计、连接配置、凭据和检查明细留在私有侧。
 
-常用旗标：`--config` 指定配置；validate `--strict`（警告即失败）/`--with-history`（E16 跨期）；
-publish `--repo-dir`/`--allow-dirty`/`--message`。
+## 常用工具
 
-## 草稿转换规则（convert 阶段，agent 执行）
+全部脚本使用 Python 3.9+ 标准库。精确参数以各脚本 `--help` 为准。
 
-输入：自由格式草稿（分区标题 + 条目字段不统一）。输出：符合配置的 `issue-N.md`。
+| 工具 | 用途 |
+| --- | --- |
+| `editorial.py connect / prepare / build` | 连接两库、读取现有投稿、生成完整审阅包 |
+| `new_issue.py` / `next_number.py` | 普通周刊骨架与候选期号；双库模式采用台账冻结期号 |
+| `new_pool.py` / `pool_to_issue.py` | 素材池与确定性转换 |
+| `validate_issue.py` / `dedup_urls.py` | 格式检查与跨期重复提示 |
+| `preview.py` | 自包含 HTML 预览；最终页面以站点构建为准 |
+| `fetch_arxiv.py` / `fetch_github_trends.py` / `fetch_bilibili.py` | 可选素材元信息；GitHub 工具查近期新建仓库，不等于周增长榜 |
+| `publish.py` | 单文件只读预演；`--commit` 本地提交，`--push` 明确推送 |
 
-1. 读配置确定板块集合、card type 映射、必填字段与别名、引用行模板。
-2. 将草稿每个条目**语义归类**到目标板块；无法归类时放入最接近的板块并在回复中说明。
-3. 条目改写为 `### N. [标签] [标题](url)`（标签必填与否看 `entry.tag_required`），
-   字段按 `entry.required_fields` 顺序输出为 `- **字段名：** 内容`，别名先归一。
-4. **摘要/亮点由 agent 撰写**：忠实原意、面向读者团队给行动建议；不得编造 URL 或事实。
-5. 每个条目包进 `::: card <type>` / `:::`（`card.containers` 开启时）；空板块写占位行。
-6. frontmatter：title 按模板生成、date、description、tags；H1 与 title 逐字相同。
-7. 转换后立即 `validate_issue.py` 自检，error 清零后才进入 preview。
+## 完成与发布
 
-写作与排版细则、正反例见 `references/style-guide.md`。
+交付草稿或出刊包时，给出预览、实际检查结果、待审事项和变更范围。双库包中的 `public/` 与 `public.patch` 仅供审阅；生成成功不表示内容已批准或网站已发布。
 
-## 校验规则摘要
+负责人确认入刊内容后，在独立公开分支应用本次变更，运行目标仓库要求的构建与预览检查。公开 PR、合并、正式发布及群通知按用户当前明确授权执行；无需反复确认已经获准的动作。完成统计与通知继续使用原运营系统。
 
-E01 frontmatter 必备 / E02 title 模板+期号一致 / E03 date 格式 / E04 tags 数量 /
-E05 H1=title / E06 引用行模板 / E07 板块顺序（NFC 比对）/ E08 `---` 分隔 /
-E09 card 容器配对与 type / E10 条目 H3 模式 / E11 编号连续 / E12 字段齐全（经别名）/
-E13 URL 合法 / E14 空板块占位 / E15 description 字数 / E16（--with-history）跨期重复；
-W01 引文超长 / W02 文内 URL 重复 / W03 字段格式惯用式 / W04 persona 弱提示 / W05 全新标签。
-配置关闭的规则自动跳过。阈值全部来自配置，勿在提示词里硬编码。
-
-## 发布红线（必须遵守）
-
-1. validate 存在 error → 拒绝发布（无 `--force-content --push` 双旗标不得绕过）。
-2. preview 生成后**必须经用户确认**才可进入 publish。
-3. publish 默认 dry-run；`--push` 仅在用户对本次发布明确同意后附加。
-4. 推送前脚本会打印 remote/branch/文件清单；有脏工作区需用户知情后加 `--allow-dirty`。
-5. 任何情况下不使用 force push（脚本无此入口，agent 也不得手工绕过）。
-6. 目标仓库结构、期号冲突处理、回滚流程见 `references/publishing.md`。
-
-## 预设与换皮
-
-- 官方预设：`presets/minimal.json`（中性默认显式化）、`presets/embodied-ai-weekly.json`
-  （具身智能周刊风格：5 板块 / 6 色 card / 三字段 / 各阈值）、
-  `presets/embodied-ai-weekly-legacy.json`（板块变体：仅第 4 板块换成「⚙️ 工程实战 & 踩坑记录」，
-  其余全继承，复现早期形态）。
-- 用户配置只需 `{"extends": "embodied-ai-weekly", ...覆盖字段}`；换预设即换风格。
-- **板块变体**：只覆盖 `sections`（列表整体替换，需写全）即可换板块，配色/字段/阈值靠 extends 继承。
-- 新建预设并提交上游的流程见 `references/presets-guide.md`。
-
-## 素材搜集与落盘（research / pool 阶段，可选）
-
-来源清单、API 查询式、七方向检索关键词、去重策略与大陆网络注意事项见 `references/content-sourcing.md`。
-原则：候选先过 `dedup_urls.py`，再进入草稿或素材池。
-
-**素材池（手搓友好）**：需要人工润色（尤其视频条目）时，先把候选落盘成本地单文件 md 池子：
-
-1. `new_pool.py` 建池并把 `fetch_arxiv/fetch_github_trends/dedup_urls` 的纯文本输出导入到「待归类」板块。
-2. 你手搓：把条目的 `[ ]` 改成 `[x]`；补 `- 键：值` 字段；用 `- 板块：<板块名>` 归类（或直接移到对应板块）。
-   视频条目可用 `fetch_bilibili.py <BV> --pool <池> --section <板块>` 抓标题/UP/时长后手改。
-3. `pool_to_issue.py` 确定性搬骨架：只搬 `[x]` 条目，缺字段**不猜**、留空由 validate 报出，再交给 agent 补写摘要/亮点。
-   格式细节与字段约定见 `references/workflow.md`。
-
-## Resources
-
-- `references/`：style-guide / workflow / publishing / presets-guide / content-sourcing（按需加载）
-- `assets/issue-template.md`（脚手架模板）、`assets/preview-style.css`（预览基础样式）、
-  `assets/card-spec.md`（card 容器语法说明）
-- `tests/run_tests.sh`：单测（common + pool）+ 四 golden + 坏样本回归（改动任何脚本/预设后必须先跑通）
+改脚本后运行 `bash tests/run_tests.sh`。报告本地完成、已推送、已合并及已部署的实际状态。

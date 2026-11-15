@@ -28,6 +28,8 @@ bash tests/run_tests.sh
 测试构成：
 
 - `tests/test_common.py`：核心纯函数单测（配置合并、extends 链、URL 归一化等）
+- `tests/test_pool.py`：素材池解析、搬运、预览与格式回归
+- `tests/test_publish.py` / `tests/test_editorial.py`：真实本地 Git 仓库的发布副作用、双库接入、恢复及公开导出；全部使用虚构资料与本地远端
 - `tests/golden/`：合法样本回归（neutral 零配置 + embodied 预设 + 板块变体预设，任何改动不得让它们失败）
 - `tests/bad/`：坏样本必须触发对应 rule id
 
@@ -57,7 +59,7 @@ python3 scripts/preview.py /tmp/preset-check/issues/issue-1.md --config /tmp/t.j
 1. 规则 ID 顺延（当前最大：E16 / W05，新规则用 E17+ / W06+）
 2. 规则必须**配置驱动**：阈值默认 0 或空字符串 = 关闭该检查，禁止硬编码
 3. 在 `tests/bad/` 加坏样本，并在 `tests/run_tests.sh` 增加 `check_rule` 断言
-4. 同步更新 `SKILL.md` 的规则摘要与 `references/style-guide.md`（如涉及写作规范）
+4. 同步更新相关参考文档；入口 `SKILL.md` 只保留影响 agent 决策的必要说明
 
 ## 代码规范
 

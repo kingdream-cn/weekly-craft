@@ -8,6 +8,18 @@
 
 ## [Unreleased]
 
+### Dual-repo editorial integration — 2026-11-15
+
+- 更新 README：增加流程图、虚构资料的实际输出截图、本地双视图交互演示与可运行素材池示例；新增 `AGENTS.md` 维护约定及 `AGENT.md` 兼容入口。
+- 自动生成私有 `review.md`：全部候选按拟入刊／暂未入选分组，展示投稿人、类型、标题、内容要点与具体取舍问题；支持显式复用私有实名映射，姓名不进入公开包，审核无需另填表。
+- 新增 `editorial.py connect / prepare / build`：真实连接公开 Git 历史和私有 ledger v1，复用冻结期号、核验和计划入刊周；每期保留一份可编辑素材池，生成正文、预览及正文/侧边栏/README 审阅补丁。
+- 私有工作原子落盘、保留人工编辑、源版本变化提示；公开导出按文件与字段投影，不带出成员映射、台账、凭据或私有检查明细。
+- 新增 `embodied-ai-weekly-live` 七类预设及 `sections_optional`，支持省略空栏目，取消标签、分钟数及字数的额外要求；原预设保持兼容。
+- **发布行为修正**：默认预演真正只读；新增 `--commit` 明确本地提交，`--push` 提交并推送。需要已有目标检出；不再自动临时 clone 或 rebase。核对 origin 和检出分支；`--allow-dirty` 保留无关暂存改动；推送不夹带其他文件的本地未发布提交。
+- 修复回归脚本吞掉 Python 失败退出码的问题，增加真实 Git 发布、双库接入和公开导出行为测试。精简 SKILL 与按需参考文档，补充 Codex 安装示例。
+
+下列为本轮之前已在 main 的 Unreleased 改进：
+
 ### Added
 - **本地素材池链路**（`scripts/_pool.py`、`new_pool.py`、`pool_to_issue.py`、
   `fetch_bilibili.py`）：候选先落盘成单文件 md 池子，人工润色后用脚本确定性搬回 issue 骨架；

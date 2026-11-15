@@ -29,6 +29,7 @@
 | `pool_dir` | `"sources"` | 素材池目录 |
 | `pool_filename` | `"issue-{number}-pool.md"` | 素材池文件名模板，占位符 `{number}` |
 | `sections` | 3 个中性板块 | 数组，元素 `{heading, card_types[]}`；heading 逐字匹配（校验前 NFC）；card_types 为该板块允许的 card type（空=不允许/不校验） |
+| `sections_optional` | `false` | `true` 允许省略空板块，保留板块仍按配置顺序；现役 `embodied-ai-weekly-live` 使用此选项 |
 | `separator` | `"---"` | 板块分隔线 |
 | `empty_section_placeholder` | `"> *本期暂无收录。*"` | 空板块占位行 |
 | `quote_line_template` | `""` | 空=不生成引用行；支持 `{date}` `{topics}` |
@@ -51,7 +52,7 @@
 | `sources.sites` | `[]` | 手工来源清单（agent 参考，脚本不用） |
 | `repo.remote` | `""` | 目标仓库（URL 或本地路径） |
 | `repo.branch` | `"main"` | 发布分支 |
-| `repo.workdir` | `""` | 本地克隆目录，空=publish 用临时 clone |
+| `repo.workdir` | `""` | 已有本地克隆目录；空时 publish 需要 `--repo-dir` |
 
 **约定：阈值 0/空 一律表示"关闭该检查"，校验器自动跳过对应规则。**
 
