@@ -1,0 +1,4 @@
+interface:
+  display_name: "weekly-craft 周刊编刊"
+  short_description: "连接公开与私有周刊仓库，整理真实投稿、生成正文预览与可审核出刊包"
+  default_prompt: "使用 $weekly-craft 按已有配置准备本期周刊，整理摘要并生成预览和出刊包，交给我审核。"

@@ -1,199 +1,134 @@
 #!/usr/bin/env python3
-"""Publish a validated issue into the newsletter repo. Two-stage by design:
-default is dry-run (local commit only); --push performs the actual push and
-must only be added after explicit user consent. Force push is impossible.
+"""Preview publication without mutation; --commit writes locally, --push publishes.
 
-Exit codes: 0 = ok, 1 = validation/number/dirty/push failure, 2 = environment error.
+Exit codes: 0 success, 1 content/Git precondition failure, 2 usage/environment error.
 """
-
 from __future__ import annotations
 
 import argparse
 import json
-import shutil
-import subprocess
 import sys
-import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-import _common as c  # noqa: E402
-import validate_issue  # noqa: E402
+import _common as c
+from _git import git, remote_key, relative_file, root
+import validate_issue
 
-HISTORY_NAME = ".publish-history.jsonl"
-
-
-class Report:
-    def __init__(self):
-        self.errors = []
-        self.warnings = []
-
-    def error(self, rule, message, line=0):
-        self.errors.append({"rule": rule, "line": line, "message": message})
-
-    def warn(self, rule, message, line=0):
-        self.warnings.append({"rule": rule, "line": line, "message": message})
+HISTORY_NAME = '.publish-history.jsonl'
 
 
-def git(args: list, cwd: Path, check: bool = True):
-    result = subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True)
-    if check and result.returncode != 0:
-        print(f"[ERROR] git {' '.join(args)} 失败:\n{result.stderr.strip()}", file=sys.stderr)
-        sys.exit(1)
-    return result
+def log_history(entry, repo):
+    path = Path(git(repo, 'rev-parse', '--git-path', HISTORY_NAME).stdout.strip())
+    if not path.is_absolute():
+        path = repo / path
+    with path.open('a', encoding='utf-8') as handle:
+        handle.write(json.dumps({'time': datetime.now(timezone.utc).isoformat(), **entry}, ensure_ascii=False) + '\n')
 
 
-def log_history(entry: dict) -> None:
-    entry = {"time": datetime.now(timezone.utc).isoformat(), **entry}
-    with Path(HISTORY_NAME).open("a", encoding="utf-8") as fh:
-        fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser(description="发布 issue 到周刊仓库（默认 dry-run）")
-    parser.add_argument("file")
-    parser.add_argument("--repo-dir", help="本地克隆目录（默认取配置 repo.workdir，否则临时克隆）")
-    parser.add_argument("--remote", help="覆盖配置 repo.remote")
-    parser.add_argument("--push", action="store_true", help="实际推送（需用户明确同意；默认仅 dry-run）")
-    parser.add_argument("--message", help="commit message（默认 'publish: <title>'）")
-    parser.add_argument("--allow-dirty", action="store_true", help="工作区存在其他改动时仍继续")
-    parser.add_argument("--force-content", action="store_true", help="跳过校验拒绝（必须同时 --push，慎用）")
-    parser.add_argument("--config", help="配置文件路径")
-    parser.add_argument("--json", action="store_true", dest="as_json")
-    args = parser.parse_args()
-
-    src = Path(args.file)
-    if not src.exists():
-        c.die(f"输入文件不存在: {src}")
-    cfg = c.load_config(args.config)
-
-    report = Report()
+def publish(src, cfg, workdir, *, commit=False, push=False, allow_dirty=False, message=None, force_content=False):
+    workdir = root(workdir)
+    if not src.is_file():
+        raise ValueError('Input issue file does not exist')
+    report = validate_issue.Report()
     validate_issue.validate(src, cfg, report)
-    if report.errors:
-        if not (args.force_content and args.push):
-            for item in report.errors:
-                print(f"[ERROR] {item['rule']}: {item['message']} (line {item['line']})")
-            print("[ERROR] 校验未通过，拒绝发布（逃生门：--force-content 且 --push）", file=sys.stderr)
-            return 1
-        print("[WARN] --force-content 生效：跳过上述校验错误继续发布", file=sys.stderr)
-
-    remote = args.remote or cfg["repo"]["remote"]
-    branch = cfg["repo"]["branch"]
-    temp_dir = None
-    if args.repo_dir:
-        workdir = Path(args.repo_dir).expanduser()
-    elif cfg["repo"]["workdir"]:
-        workdir = Path(cfg["repo"]["workdir"]).expanduser()
-    else:
-        temp_dir = tempfile.mkdtemp(prefix="weekly-craft-publish-")
-        workdir = Path(temp_dir) / "repo"
-    print(f"[1/5] 准备仓库: {workdir}")
-    if (workdir / ".git").exists():
-        if remote:
-            pull = git(["pull", "--rebase", "origin", branch], workdir, check=False)
-            if pull.returncode != 0:
-                in_rebase = (workdir / ".git" / "rebase-merge").exists() or (workdir / ".git" / "rebase-apply").exists()
-                git(["rebase", "--abort"], workdir, check=False)
-                sys.stdout.flush()
-                if in_rebase:
-                    print("[ERROR] 同步仓库 pull --rebase 失败（远端存在冲突提交），已 abort，请人工处理", file=sys.stderr)
-                    log_history({"issue": src.name, "commit": None, "pushed": False, "result": "sync-conflict"})
-                else:
-                    print(f"[ERROR] 同步仓库 pull 失败（网络或凭据问题，非内容冲突）:\n{pull.stderr.strip()}\n请检查网络后重试", file=sys.stderr)
-                    log_history({"issue": src.name, "commit": None, "pushed": False, "result": "sync-error"})
-                return 1
-    elif remote:
-        workdir.parent.mkdir(parents=True, exist_ok=True)
-        clone = subprocess.run(["git", "clone", "--branch", branch, remote, str(workdir)], capture_output=True, text=True)
-        if clone.returncode != 0:
-            clone = subprocess.run(["git", "clone", remote, str(workdir)], capture_output=True, text=True)
-        if clone.returncode != 0:
-            print(f"[ERROR] clone 失败:\n{clone.stderr.strip()}", file=sys.stderr)
-            return 2
-    else:
-        c.die("repo.remote 未配置，且 --repo-dir 指向的目录不是 git 仓库")
-
-    issues_dir = workdir / cfg["issues_subdir"]
-    issues_dir.mkdir(parents=True, exist_ok=True)
-    target = issues_dir / src.name
-    print(f"[2/5] 目标文件: {target}")
-    identical = target.exists() and target.read_text(encoding="utf-8") == src.read_text(encoding="utf-8")
+    if report.errors and not (force_content and push):
+        return {'errors': report.errors, 'warnings': report.warnings}, 1
+    if c.issue_number_from_filename(src.name, cfg) is None:
+        raise ValueError('Input filename must match the configured issue filename')
+    branch = cfg['repo']['branch']
+    current = git(workdir, 'branch', '--show-current').stdout.strip()
+    if current != branch:
+        raise ValueError('Checked-out branch differs from repo.branch; select the intended checkout first')
+    actual = git(workdir, 'remote', 'get-url', 'origin', check=False)
+    configured = cfg['repo'].get('remote', '')
+    if configured and (actual.returncode or remote_key(configured) != remote_key(actual.stdout)):
+        raise ValueError('origin differs from repo.remote; no repository files were changed')
+    rel = relative_file(cfg['issues_subdir']) / src.name
+    target = workdir / rel
+    if not target.resolve().is_relative_to(workdir):
+        raise ValueError('Publication target resolves outside the repository')
+    content = src.read_text(encoding='utf-8')
+    identical = target.exists() and target.read_text(encoding='utf-8') == content
     if target.exists() and not identical:
-        print(f"[ERROR] 期号冲突：{target} 已存在且内容不同", file=sys.stderr)
-        return 1
+        raise ValueError('Issue number already exists with different content')
+    dirty = bool(git(workdir, 'status', '--porcelain').stdout.strip())
+    if dirty and not allow_dirty:
+        raise ValueError('Working tree has changes; use an isolated checkout or explicitly --allow-dirty')
+    # --allow-dirty preserves unrelated staged changes but never overwrites this target.
+    if git(workdir, 'status', '--porcelain', '--', str(rel)).stdout.strip():
+        raise ValueError('Publication target has uncommitted changes; review it first')
+    result = {'dry_run': not (commit or push), 'pushed': False, 'commit': None,
+              'branch': branch, 'remote': remote_key(actual.stdout) if not actual.returncode else '',
+              'files': [rel.as_posix()], 'identical': identical, 'warnings': report.warnings}
+    if not (commit or push):
+        return result, 0
+    if push:
+        if actual.returncode:
+            raise ValueError('Publishing requires an origin remote')
+        git(workdir, 'fetch', '--no-tags', 'origin', branch)
+        remote_head = git(workdir, 'rev-parse', 'FETCH_HEAD').stdout.strip()
+        if git(workdir, 'merge-base', '--is-ancestor', remote_head, 'HEAD', check=False).returncode:
+            raise ValueError('Remote has newer or conflicting commits; synchronize explicitly before publishing')
+        ahead_files = [name for name in git(workdir, 'log', '--format=', '--name-only', f'{remote_head}..HEAD').stdout.splitlines() if name]
+        if set(ahead_files) - {rel.as_posix()}:
+            raise ValueError('Local unpublished commits include unrelated files; publish from an isolated branch')
+    if not identical:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content, encoding='utf-8')
+        git(workdir, 'add', '--', rel.as_posix())
+        meta, _ = c.parse_frontmatter(content)
+        git(workdir, 'commit', '--only', '-m', message or f"publish: {meta.get('title', src.stem)}", '--', rel.as_posix())
+    elif git(workdir, 'ls-files', '--error-unmatch', '--', rel.as_posix(), check=False).returncode:
+        raise ValueError('Identical target is not committed')
+    result['commit'] = git(workdir, 'rev-parse', 'HEAD').stdout.strip()
+    if push:
+        # Explicit HEAD avoids accidentally pushing a different local branch ref.
+        pushed = git(workdir, 'push', 'origin', f'HEAD:refs/heads/{branch}', check=False)
+        if pushed.returncode:
+            log_history({'issue': src.name, **result, 'result': 'push-rejected'}, workdir)
+            raise ValueError('Push was rejected; local commit is preserved; inspect before retrying')
+        result['pushed'] = True
+    log_history({'issue': src.name, **result, 'result': 'pushed' if push else 'committed'}, workdir)
+    return result, 0
 
-    sha = None
-    if identical:
-        sha = git(["rev-parse", "HEAD"], workdir).stdout.strip()
-        if not args.push:
-            print("目标文件内容已一致且未要求推送，无需操作")
-            log_history({"issue": src.name, "commit": sha, "pushed": False, "result": "no-change"})
-            return 0
-        print(f"[3/5] 目标文件已在本地 commit（{sha[:8]}），直接进入推送阶段")
-    else:
-        status = git(["status", "--porcelain"], workdir).stdout.strip().splitlines()
-        if status and not args.allow_dirty:
-            print("[ERROR] 工作区存在其他未提交改动，拒绝继续（--allow-dirty 可跳过）:", file=sys.stderr)
-            for line in status:
-                print(f"  {line}", file=sys.stderr)
-            return 1
-        shutil.copyfile(src, target)
-        git(["add", "--", str(target.relative_to(workdir))], workdir)
-        meta, _ = c.parse_frontmatter(src.read_text(encoding="utf-8"))
-        title = (meta or {}).get("title", src.stem)
-        message = args.message or f"publish: {title}"
-        commit = git(["commit", "-m", message], workdir, check=False)
-        if commit.returncode != 0:
-            if "nothing to commit" in commit.stdout:
-                print("无变更需要提交")
-                return 0
-            print(f"[ERROR] commit 失败:\n{commit.stderr.strip()}", file=sys.stderr)
-            return 1
-        sha = git(["rev-parse", "HEAD"], workdir).stdout.strip()
-        print(f"[3/5] 本地 commit: {sha[:8]} — {message}")
-        stat = git(["show", "--stat", "--oneline", "HEAD"], workdir).stdout.strip()
-        print(stat)
-        log_history({"issue": src.name, "commit": sha, "pushed": False, "result": "dry-run"})
-        if not args.push:
-            counts = git(["rev-list", "--left-right", "--count", f"origin/{branch}...HEAD"], workdir, check=False)
-            if counts.returncode == 0:
-                behind, ahead = counts.stdout.split()
-                ahead_behind = f"ahead {ahead}, behind {behind}"
-            else:
-                ahead_behind = "?"
-            print(f"[4/5] DRY-RUN 完成（{ahead_behind}）。加 --push 才会实际推送。")
-            if args.as_json:
-                c.emit_json({"dry_run": True, "commit": sha, "workdir": str(workdir), "ahead_behind": ahead_behind})
-            return 0
 
-    print(f"[4/5] 即将推送: remote={remote} branch={branch} 文件={[str(target.relative_to(workdir))]}")
-    pull = git(["pull", "--rebase", "origin", branch], workdir, check=False)
-    if pull.returncode != 0:
-        in_rebase = (workdir / ".git" / "rebase-merge").exists() or (workdir / ".git" / "rebase-apply").exists()
-        git(["rebase", "--abort"], workdir, check=False)
-        sys.stdout.flush()
-        if in_rebase:
-            print("[ERROR] 推送前 pull --rebase 冲突，已 abort，请人工处理（本地 commit 保留）", file=sys.stderr)
-            log_history({"issue": src.name, "commit": sha, "pushed": False, "result": "rebase-conflict"})
-        else:
-            print(f"[ERROR] 推送前 pull 失败（网络或凭据问题，非内容冲突）:\n{pull.stderr.strip()}\n本地 commit 保留，检查网络后重跑 --push 即可", file=sys.stderr)
-            log_history({"issue": src.name, "commit": sha, "pushed": False, "result": "sync-error"})
-        return 1
-    if not target.exists():
-        print("[ERROR] rebase 后目标文件消失，请人工检查", file=sys.stderr)
-        return 1
-    push = subprocess.run(["git", "push", "origin", branch], cwd=workdir, capture_output=True, text=True)
-    if push.returncode != 0:
-        print(f"[ERROR] push 被拒（non-fast-forward 或其他）:\n{push.stderr.strip()}\n提示：先 pull --rebase 后重试，禁止 force push", file=sys.stderr)
-        log_history({"issue": src.name, "commit": sha, "pushed": False, "result": "push-rejected"})
-        return 1
-    print(f"[5/5] 已推送。CI: 见 {remote} 的 Actions；线上页面稍后更新。")
-    log_history({"issue": src.name, "commit": sha, "pushed": True, "result": "pushed"})
+def main():
+    parser = argparse.ArgumentParser(description='发布预演默认只读；--commit 本地提交；--push 推送')
+    parser.add_argument('file')
+    parser.add_argument('--repo-dir', help='已有目标 Git 仓库，或配置 repo.workdir')
+    parser.add_argument('--remote', help='覆盖 repo.remote，用于核对 origin')
+    parser.add_argument('--commit', action='store_true', help='明确执行本地提交')
+    parser.add_argument('--push', action='store_true', help='明确同意后的提交与推送')
+    parser.add_argument('--message')
+    parser.add_argument('--allow-dirty', action='store_true', help='保留其他改动，仅提交本期文件')
+    parser.add_argument('--force-content', action='store_true', help='与 --push 配合的兼容内容校验绕过')
+    parser.add_argument('--config')
+    parser.add_argument('--json', action='store_true', dest='as_json')
+    args = parser.parse_args()
+    cfg = c.load_config(args.config)
+    if args.remote:
+        cfg['repo']['remote'] = args.remote
+    directory = args.repo_dir or cfg['repo'].get('workdir')
+    if not directory:
+        parser.error('Provide --repo-dir or repo.workdir pointing to an existing clone')
+    try:
+        result, code = publish(Path(args.file).resolve(), cfg, Path(directory).expanduser().resolve(),
+                               commit=args.commit, push=args.push, allow_dirty=args.allow_dirty,
+                               message=args.message, force_content=args.force_content)
+    except (ValueError, OSError) as error:
+        # Only controlled ValueError messages; OSError paths may be private.
+        message = str(error) if isinstance(error, ValueError) else 'Unable to read or write local files'
+        result, code = {'error': message}, 1
     if args.as_json:
-        c.emit_json({"dry_run": False, "commit": sha, "pushed": True})
-    return 0
+        c.emit_json(result)
+    elif code:
+        print('[ERROR] ' + json.dumps(result, ensure_ascii=False), file=sys.stderr)
+    else:
+        print(('DRY-RUN（目标文件、索引与提交均未修改）' if result['dry_run'] else
+               '已推送' if result['pushed'] else '已本地提交') + ': ' + ', '.join(result['files']))
+    return code
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     sys.exit(main())

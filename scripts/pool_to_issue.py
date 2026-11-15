@@ -117,6 +117,8 @@ def build_issue(pool: dict, cfg: dict, number: int, issue_date: str, topics: str
         for entry in buckets[c.nfc(section["heading"])]:
             items.append(prepare_entry(entry, cfg, section_by_nfc[c.nfc(section["heading"])]))
         if not items:
+            if cfg.get("sections_optional"):
+                continue
             blocks.append(f"## {section['heading']}\n\n{placeholder}")
             continue
         rendered = []

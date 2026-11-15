@@ -144,7 +144,11 @@ def validate(path: Path, cfg: dict, report: Report, history=None) -> None:
 
     expected = [c.nfc(s["heading"]) for s in cfg["sections"]]
     actual = [s["heading"] for s in issue["sections"]]
-    if actual != expected:
+    if cfg.get("sections_optional"):
+        valid_sections = actual == [heading for heading in expected if heading in actual]
+    else:
+        valid_sections = actual == expected
+    if not valid_sections:
         report.error("E07", f"板块标题/顺序不符: 期望 {expected}，实际 {actual}", issue["sections"][0]["line"] if issue["sections"] else 0)
 
     separator = cfg.get("separator", "---")

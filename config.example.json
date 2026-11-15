@@ -10,6 +10,8 @@
     { "heading": "内容精选", "card_types": [] },
     { "heading": "工具与项目", "card_types": [] }
   ],
+  "_comment_sections_optional": "true 时空板块可省略，保留的板块仍按配置顺序；默认 false 保持旧格式",
+  "sections_optional": false,
   "separator": "---",
   "empty_section_placeholder": "> *本期暂无收录。*",
   "_comment_quote_line": "引用行模板，留空则不生成也不校验；支持 {date} 与 {topics} 占位符",
@@ -48,7 +50,7 @@
     "sites": []
   },
   "repo": {
-    "_comment_repo": "remote 为周刊站点源仓库地址（publish.py 使用）；workdir 为本地克隆复用目录，留空则每次临时克隆",
+    "_comment_repo": "remote 用于核对目标 origin；workdir 为已有本地克隆目录，也可通过 --repo-dir 指定",
     "remote": "",
     "branch": "main",
     "workdir": ""

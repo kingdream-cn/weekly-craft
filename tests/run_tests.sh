@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
-# 一键回归：单测 + 四 golden 必须 PASS；坏样本必须触发对应 rule id。
-set -u
+# 一键回归：单测 + 五 golden 必须 PASS；坏样本必须触发对应 rule id。
+set -uo pipefail
 cd "$(dirname "$0")/.."
 PY=python3
 FAIL=0
 
 echo "== unit tests =="
-$PY tests/test_common.py 2>&1 | tail -1 || FAIL=1
-$PY tests/test_pool.py 2>&1 | tail -1 || FAIL=1
+$PY -m unittest discover -s tests -p 'test_*.py' || FAIL=1
 
 echo "== golden: neutral (zero config) =="
 $PY scripts/validate_issue.py tests/golden/neutral-issue.md || FAIL=1
@@ -17,6 +16,8 @@ $PY scripts/validate_issue.py tests/golden/issue-42.md --config "$P" || FAIL=1
 $PY scripts/validate_issue.py tests/golden/issue-43.md --config "$P" || FAIL=1
 echo "== golden: embodied-ai-weekly-legacy preset (板块变体) =="
 $PY scripts/validate_issue.py tests/golden/issue-40-legacy.md --config presets/embodied-ai-weekly-legacy.json || FAIL=1
+echo "== golden: embodied-ai-weekly-live (公开历史回放，省略空栏目) =="
+$PY scripts/validate_issue.py tests/golden/live/issue-42.md --config presets/embodied-ai-weekly-live.json || FAIL=1
 
 check_rule() {
   local file="$1" rule="$2" cfg="${3:-}"
