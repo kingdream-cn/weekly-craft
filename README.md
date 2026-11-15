@@ -1,112 +1,186 @@
+<div align="center">
+
 # weekly-craft
 
-把投稿或草稿整理成可审核的 Markdown 周刊：生成正文、校验格式、跨期去重、预览排版，并准备网站更新。脚本处理文件，agent 整理内容，负责人决定入刊。
+**从候选素材，到一期可审阅的周刊。**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![tests](https://github.com/kingdream-cn/weekly-craft/actions/workflows/test.yml/badge.svg)](https://github.com/kingdream-cn/weekly-craft/actions/workflows/test.yml)
+脚本处理格式与文件，agent 整理内容，你决定最终入刊。
 
-Python 3.9+ 标准库，无第三方 Python 依赖。可作为 Agent Skill，也可直接使用 CLI。VitePress 网站构建沿用目标项目的 Node/npm 环境。
+[![Tests](https://github.com/kingdream-cn/weekly-craft/actions/workflows/test.yml/badge.svg)](https://github.com/kingdream-cn/weekly-craft/actions/workflows/test.yml)
+![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-3776AB?logo=python&logoColor=white)
+![Dependencies 0](https://img.shields.io/badge/Python_dependencies-0-178773)
+[![MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-## 两种用法
+[效果预览](#效果预览) · [快速开始](#快速开始) · [双仓库接入](#连接你的两个周刊仓库) · [文档与维护](#文档与维护)
 
-| 场景 | 入口 |
-| --- | --- |
-| 已有公开周刊 + 私有投稿运营台账 | 连接两库，从真实投稿生成可审核出刊包 |
-| 只有草稿、链接或素材池 | 继续使用独立格式工具，无需私有仓库 |
+</div>
 
-双仓库模式面向已有 `private-ledger-v1` 台账的项目。它复用有效性、去重、期号与通知规则，不另外建设采集器、数据库或常驻服务。通用格式引擎仍可通过预设用于其他周刊。
+![从素材输入、编辑素材池、负责人审核，到生成出刊包的四步流程](assets/readme/workflow.svg)
 
-## 双仓库：连接一次，每期准备与生成
+weekly-craft 是一个可复用的 Agent Skill，也是一套可独立使用的 Python CLI。把链接、投稿或自由草稿变成结构统一的 Markdown 周刊，并准备审核表、正文预览和网站更新。
+
+- **每期只维护一份素材池**：勾选、改摘要、调板块；重复准备保留已有编辑。
+- **审核围绕内容取舍**：看投稿人、类型和一句话要点，按编号告诉 agent 保留或取消。
+- **适配已有周刊**：普通草稿直接用；已有投稿运营台账时，再连接公开与私有仓库。
+
+## 效果预览
+
+下面使用 **4 个虚构候选、2 个拟入刊条目** 展示实际脚本产物。姓名、内容和 example.com 链接都是演示资料。
+
+**负责人审核表**：拟入刊与暂未入选分组，具体问题直接呈现。完整核验过程收在详细检查中。
+
+[![负责人审核表：投稿编号、投稿人、投稿类型、内容要点和入刊建议](assets/readme/review.png)](assets/readme/review.png)
+
+<details>
+<summary><strong>展开查看周刊正文预览</strong></summary>
+
+卡片、板块统计和阅读排版来自现有 `preview.py`，支持跟随系统的明暗主题。最终站点以目标项目构建结果为准。
+
+[![脚本生成的周刊正文预览：开源项目与论文两个板块](assets/readme/preview.png)](assets/readme/preview.png)
+
+</details>
+
+[本地交互演示](docs/demo.html)提供“审核候选／周刊预览”双视图切换。clone 后用浏览器打开 `docs/demo.html` 即可体验；GitHub 文件页可查看或下载 HTML。[示例源文件](examples/demo/)也可直接阅读。
+
+## 快速开始
+
+运行脚本需要 **Python 3.9+**，只使用标准库。先试一份完整示例：
+
+```bash
+git clone https://github.com/kingdream-cn/weekly-craft.git
+cd weekly-craft
+
+python3 scripts/validate_issue.py examples/demo/issue-1.md \
+  --config examples/demo/config.json
+python3 scripts/preview.py examples/demo/issue-1.md \
+  --config examples/demo/config.json --out preview.html --open
+```
+
+看到校验 `PASS` 后，浏览器会打开生成的周刊预览。试改 [examples/demo/pool.md](examples/demo/pool.md)，再转换、校验和预览，就能体验一次编刊。
+
+<details>
+<summary><strong>从素材池生成正文</strong></summary>
+
+```bash
+python3 scripts/pool_to_issue.py examples/demo/pool.md \
+  --config examples/demo/config.json --out issue-1.md
+python3 scripts/validate_issue.py issue-1.md --config examples/demo/config.json
+python3 scripts/preview.py issue-1.md --config examples/demo/config.json --open
+```
+
+命令保留原示例；输出到当前目录。已有同名正文时，先核对文件，明确需要覆盖再使用 `--force`。
+
+</details>
+
+<details>
+<summary><strong>从空白草稿开始</strong></summary>
+
+```bash
+python3 scripts/new_issue.py --number 1 --out my-weekly/issues
+# agent 或编辑补充生成的草稿
+python3 scripts/validate_issue.py my-weekly/issues/issue-1.md
+python3 scripts/preview.py my-weekly/issues/issue-1.md --open
+```
+
+普通模式采用中性默认。设置 `--config` 可换成自己的预设。素材元信息抓取脚本可按需使用，不要求每期重新搜集。
+
+</details>
+
+## 作为 skill 使用
+
+clone 后，在仓库根目录把完整目录链接到 Codex 的用户 skill 目录：
+
+```bash
+mkdir -p ~/.agents/skills
+ln -s "$(pwd)" ~/.agents/skills/weekly-craft
+```
+
+已有同名路径时，先核对原安装。Codex 支持该目录的自动发现和软链接；未出现时重启。其他 Agent Skills 宿主使用各自的技能目录。安装机制见 [OpenAI 官方文档](https://learn.chatgpt.com/docs/build-skills)。
+
+接下来直接说：
+
+```text
+使用 $weekly-craft，按已有配置准备本期周刊。
+整理摘要、生成审核表和预览，把需要我决定的事项列出来。
+```
+
+审核后，可以继续说：
+
+```text
+保留 #101 和 #102；#103 留到回顾选题。
+把 #101 的团队参考改得更具体，再给我更新后的预览。
+```
+
+内容理解使用当前 agent 的模型能力。CLI 本身不需要额外模型 API 密钥，摘要也可以由编辑手工填写。
+
+## 连接你的两个周刊仓库
+
+公开仓库保存投稿 Issue、已刊 Markdown 和网站；私有运营仓库已有 `private-ledger-v1` 台账。weekly-craft 读取这些结果，复用期号、有效性和去重信息。
+
+```mermaid
+flowchart LR
+  A["公开周刊仓库<br/>已刊历史 · 网站基线"] --> C["weekly-craft<br/>读取已有来源"]
+  B["私有运营仓库<br/>投稿 · 核验 · 冻结期号"] --> C
+  C --> D["私有编辑区<br/>pool.md · review.md"]
+  D --> E["负责人取舍<br/>按编号保留、取消、补选"]
+  E --> F["出刊包<br/>正文 · 预览 · 公开补丁"]
+  F --> G["现有 Git / PR 发布流程"]
+```
+
+**连接一次：**
 
 ```bash
 python3 scripts/editorial.py connect \
   --public-repo /path/to/public-weekly \
   --private-repo /path/to/private-operations
+```
 
+**每期准备与生成：**
+
+```bash
 python3 scripts/editorial.py prepare \
   --config /path/to/private-operations/.weekly-private/weekly-craft.json --refresh
-# 编辑返回目录中的 pool.md：补导读、核对摘要，调整拟入刊勾选
+# agent 更新返回目录中的 pool.md；负责人按 review.md 的编号决定取舍
 python3 scripts/editorial.py build \
   --config /path/to/private-operations/.weekly-private/weekly-craft.json --number 47
 ```
 
-期号来自既有台账，示例 `47` 应替换为 prepare 返回值。每期只编辑一份 Markdown 池；来源、检查和续跑信息保存在私有侧。重复准备保留人工编辑，新增投稿追加，源内容变化单列提示。
+`47` 替换成 prepare 返回的期号。已有 `WEEKLY_CONFIG` 或工作目录 `weekly.config.json` 时可省略 `--config`。没有这类台账时，先用上面的普通草稿与素材池工具；当前接入器不是任意私有仓库的通用同步器。
 
-生成内容包括本期正文、HTML 预览、校验结果，以及公开正文、VitePress 侧边栏和 README 近期三期的变更补丁。私有 `review.md` 自动列出全部候选的投稿人、类型、标题与一句话要点，按拟入刊和暂未入选分组；负责人按编号给出取舍即可。生成成功表示可审核，入刊和正式发布由负责人决定。实际台账、成员资料与通知记录不会进入公开包。
-
-接口、历史周期、离线回放与应用补丁见 [双仓库编刊](references/dual-repo.md)。
-
-## 普通草稿：独立使用
-
-```bash
-python3 scripts/new_issue.py --date 2026-11-16 --out ./issues
-# agent 或编辑补充内容
-python3 scripts/validate_issue.py issues/issue-1.md
-python3 scripts/preview.py issues/issue-1.md --open
-```
-
-需要先人工整理素材时，用 `new_pool.py` 建池、`pool_to_issue.py` 转换。arXiv、B 站元信息及 GitHub 新建仓库抓取都是可选工具，不要求每期重新搜集。
-
-## 安装为 skill
-
-整个仓库就是 skill 目录，保留 `scripts/`、`references/`、`presets/` 和 `assets/`。例如先 clone 到自己的工作区，再链接到 Codex 用户技能目录：
-
-```bash
-git clone https://github.com/kingdream-cn/weekly-craft.git /path/to/weekly-craft
-mkdir -p ~/.agents/skills
-ln -s /path/to/weekly-craft ~/.agents/skills/weekly-craft
-```
-
-如果该位置已有技能，先核对原安装，不覆盖。Codex 支持目录软链接和自动发现；未出现时重启。见 [OpenAI 官方技能文档](https://learn.chatgpt.com/docs/build-skills)。Claude Code 等宿主可将同一完整目录放到各自支持的技能目录，具体发现机制以宿主文档为准。
-
-自然语言调用示例：
-
-> 使用 weekly-craft，按已有双仓库配置准备本期周刊，整理摘要并生成预览和出刊包，交给我审核。
-
-无需 agent API 密钥或额外后台；内容理解由当前调用 skill 的 agent 完成。没有 agent 时 CLI 负责确定性转换，摘要由编辑填写。
-
-## 风格与配置
-
-配置解析：`--config` → `WEEKLY_CONFIG` → 当前目录 `weekly.config.json` → `extends` 预设 → 内置中性默认。只写需要覆盖的字段。
-
-| 预设 | 用途 |
+| 留在私有编辑区 | 供公开审阅的变更 |
 | --- | --- |
-| `minimal` | 中性三板块、单字段摘要、无 card |
-| `embodied-ai-weekly` | 保留原五板块与既有格式要求 |
-| `embodied-ai-weekly-legacy` | 原五板块的工程实战变体 |
-| `embodied-ai-weekly-live` | 现役七类，空栏目可省略，不强制标签、阅读分钟数或摘要长度 |
+| 素材池、审核表、姓名展示、来源与检查记录 | 本期正文、VitePress 侧边栏、README 近期入口 |
+
+有效投稿默认拟入刊，最终取舍由负责人决定。身份核验、完成统计和通知继续使用原运营系统；发布按当前用户指令执行。周期选择、姓名来源与应用补丁详见 [双仓库编刊](references/dual-repo.md)。
+
+## 换成你的排版
+
+只覆盖需要修改的字段，例如：
 
 ```json
-{"extends": "embodied-ai-weekly-live", "site_name": "我的具身周刊"}
+{"extends": "embodied-ai-weekly-live", "site_name": "我的周刊"}
 ```
 
-阈值设 `0` 可关闭相应数量/长度检查。字段、配色及板块都可配置；详见 [预设指南](references/presets-guide.md) 和 [配置示例](config.example.json)。
+| 预设 | 适合什么场景 |
+| --- | --- |
+| `minimal` | 中性三板块，单字段摘要，普通技术或阅读周刊 |
+| `embodied-ai-weekly-live` | 现役具身周刊七类，空栏目可省略 |
+| `embodied-ai-weekly` | 原五板块，兼容已有格式 |
+| `embodied-ai-weekly-legacy` | 历史板块变体，兼容旧期刊 |
 
-## 提交与发布
+配置优先级：`--config` → `WEEKLY_CONFIG` → 当前目录 `weekly.config.json` → `extends` → 内置默认。板块、字段和配色可配置；现役预设不强制阅读时长或固定摘要长度。见 [预设指南](references/presets-guide.md)与[配置示例](config.example.json)。
 
-完整出刊包先应用到公开独立分支，运行网站检查，再按授权走现有 Git/PR 流程。单份正文可用发布工具：
+## 文档与维护
 
-```bash
-python3 scripts/publish.py issue-N.md --repo-dir /path/to/weekly --config weekly.config.json
-# 显式本地提交加 --commit；已经获准的正式推送加 --push
-```
+| 你要做什么 | 读这里 |
+| --- | --- |
+| 让 agent 编刊 | [SKILL.md](SKILL.md) |
+| 接入公开与私有仓库、准备出刊包 | [双仓库编刊](references/dual-repo.md) |
+| 调整风格或添加预设 | [预设指南](references/presets-guide.md) |
+| 提交或推送正文 | [发布说明](references/publishing.md) |
+| 修改这个 skill 的源码与文档 | [AGENTS.md](AGENTS.md) · [AGENT.md 入口](AGENT.md) |
+| 贡献改动或查看版本变化 | [贡献说明](CONTRIBUTING.md) · [更新记录](CHANGELOG.md) |
 
-默认预演不修改目标文件、索引或提交，也不联网同步。明确执行时核对 origin/分支，只提交本次文件；其他暂存改动保留。推送前检查远端基线，冲突交由调用者处理。详见 [发布说明](references/publishing.md)。
+修改脚本、配置或预设后运行 `bash tests/run_tests.sh`。测试覆盖配置、素材池、真实本地 Git 接入与发布、公开导出、历史格式和错误样本；CI 使用 Python 3.9–3.12 矩阵。示例演示可离线打开，目标 VitePress 网站构建沿用其 Node/npm 环境。
 
-## 开发与验证
-
-```bash
-bash tests/run_tests.sh
-```
-
-包含配置与素材池单测、真实本地 Git 发布测试、双仓库接入与公开导出测试，以及历史 golden/坏样本回归。CI 沿用 Python 3.9–3.12 矩阵。测试状态徽章反映远端已提交版本；未发布的本地改进以实际检查记录为准。
-
-- [SKILL.md](SKILL.md)：agent 入口。
-- [CONTRIBUTING.md](CONTRIBUTING.md)：贡献约定。
-- [CHANGELOG.md](CHANGELOG.md)：兼容行为与版本变化。
-
-当前改进在 Unreleased；本地验收不等于 GitHub release、网站部署或群通知已完成。
-
-## License
-
-[MIT](LICENSE) © 2026 kingdream
+[MIT License](LICENSE)

@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="420" viewBox="0 0 1280 420" role="img" aria-labelledby="title desc">
+  <title id="title">weekly-craft：从素材到可审阅的周刊</title>
+  <desc id="desc">投稿或草稿进入素材池，agent 整理内容，负责人审核取舍，生成正文、预览与网站变更。</desc>
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#101d31"/><stop offset="1" stop-color="#163e45"/></linearGradient>
+    <linearGradient id="glow"><stop stop-color="#63dac2"/><stop offset="1" stop-color="#a5edc5"/></linearGradient>
+  </defs>
+  <rect width="1280" height="420" rx="24" fill="url(#bg)"/>
+  <g fill="none" stroke="#ffffff" stroke-opacity=".035"><path d="M0 84H1280M0 168H1280M0 252H1280M0 336H1280"/><path d="M80 0V420M240 0V420M400 0V420M560 0V420M720 0V420M880 0V420M1040 0V420M1200 0V420"/></g>
+  <g font-family="Inter, Noto Sans CJK SC, Microsoft YaHei, sans-serif">
+    <rect x="42" y="34" width="26" height="29" rx="5" fill="url(#glow)"/>
+    <path d="M49 43H61M49 49H61M49 55H57" stroke="#173e3c" stroke-width="2" stroke-linecap="round"/>
+    <text x="80" y="56" font-size="21" font-weight="700" fill="#eefaf8">weekly-craft</text>
+    <text x="42" y="116" font-size="32" font-weight="700" fill="#f5fbff">从候选素材，到一期可审阅的周刊。</text>
+    <text x="42" y="151" font-size="17" fill="#aec7d5">脚本处理格式与文件 · agent 整理内容 · 你决定最终入刊</text>
+    <g transform="translate(42 191)">
+      <rect width="270" height="143" rx="14" fill="#1b3048" stroke="#35506b"/>
+      <text x="20" y="33" font-size="13" font-weight="700" fill="#80c8e9">01 / INPUT</text>
+      <text x="20" y="69" font-size="23" font-weight="700" fill="#f3f7fc">连接素材</text>
+      <text x="20" y="102" font-size="15" fill="#b3c7d8">投稿台账 / Markdown / 链接</text>
+      <text x="20" y="125" font-size="13" fill="#89a5ba">沿用已有来源和期号</text>
+    </g>
+    <g transform="translate(351 191)">
+      <rect width="270" height="143" rx="14" fill="#1b3048" stroke="#35506b"/>
+      <text x="20" y="33" font-size="13" font-weight="700" fill="#80c8e9">02 / EDIT</text>
+      <text x="20" y="69" font-size="23" font-weight="700" fill="#f3f7fc">编辑一份素材池</text>
+      <text x="20" y="102" font-size="15" fill="#b3c7d8">归类 · 摘要 · 原文核对</text>
+      <text x="20" y="125" font-size="13" fill="#89a5ba">pool.md 保留你的修改</text>
+    </g>
+    <g transform="translate(660 191)">
+      <rect width="270" height="143" rx="14" fill="#173e42" stroke="#64d4bc"/>
+      <text x="20" y="33" font-size="13" font-weight="700" fill="#91e6cf">03 / REVIEW</text>
+      <text x="20" y="69" font-size="23" font-weight="700" fill="#f3fffa">负责人决定入刊</text>
+      <text x="20" y="102" font-size="15" fill="#b6d9cf">谁投的 · 讲什么 · 是否收录</text>
+      <text x="20" y="125" font-size="13" fill="#91baaf">按投稿编号告诉 agent 即可</text>
+    </g>
+    <g transform="translate(969 191)">
+      <rect width="269" height="143" rx="14" fill="#1b3744" stroke="#3c6273"/>
+      <text x="20" y="33" font-size="13" font-weight="700" fill="#80c8e9">04 / OUTPUT</text>
+      <text x="20" y="69" font-size="23" font-weight="700" fill="#f3f7fc">生成出刊包</text>
+      <text x="20" y="102" font-size="15" fill="#b3c7d8">正文 · 预览 · 网站变更</text>
+      <text x="20" y="125" font-size="13" fill="#89a5ba">按现有 Git / PR 流程发布</text>
+    </g>
+    <g stroke="#83afa9" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M322 262H341L335 256M341 262L335 268"/><path d="M631 262H650L644 256M650 262L644 268"/><path d="M940 262H959L953 256M959 262L953 268"/></g>
+    <text x="42" y="382" font-size="14" fill="#9cbdc6">一份可编辑的 Markdown 池</text>
+    <text x="423" y="382" font-size="14" fill="#9cbdc6">可选的公开 / 私有双仓库接入</text>
+    <text x="887" y="382" font-size="14" fill="#9cbdc6">通用预设 · Python 标准库</text>
+  </g>
+</svg>

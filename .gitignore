@@ -4,6 +4,7 @@ weekly.config.json
 # 预览与运行产物
 .preview/
 preview.html
+!examples/demo/preview.html
 .publish-history.jsonl
 
 # Python
