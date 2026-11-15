@@ -21,6 +21,7 @@ from zoneinfo import ZoneInfo
 
 import _common as c
 import _pool
+import _review
 from _git import git, github_name, relative_file, root
 import dedup_urls
 import pool_to_issue
@@ -185,6 +186,7 @@ def prepare(path, week, number=None, publication_date=None, refresh=False):
     if state.get('source_repository', {}).get('full_name', '').lower() != options['public_repository']:
         raise ValueError('Ledger source binding differs from the connected public repository')
     number, publication_date, release = period(state, week, number, publication_date)
+    names = _review.load_names(private, options)
     public_head, history, files = public_snapshot(public, options['public_ref'], cfg)
     issue_path = (relative_file(cfg['issues_subdir']) / c.filename_for_number(number, cfg)).as_posix()
     if issue_path in files:
@@ -223,6 +225,9 @@ def prepare(path, week, number=None, publication_date=None, refresh=False):
         item = minimal_record(record)
         item['source_issue'] = f"https://github.com/{options['public_repository']}/issues/{item['issue_number']}"
         item['fingerprint'] = fingerprint(item)
+        # Private presentation metadata does not change a source-content fingerprint.
+        item['submitter_name'] = _review.submitter_name(state, record, week, names)
+        item['validation_errors'] = [str(error) for error in record.get('validation', {}).get('errors', [])]
         published = history.get(source_key(item['input']['source_url'], cfg)) if item['input']['source_url'] else None
         item['published_in'] = published
         items[key] = item
@@ -249,6 +254,7 @@ def prepare(path, week, number=None, publication_date=None, refresh=False):
                 'sources': items, 'source_review': pending, 'editor_review': 'pending', 'deferred_count': deferred}
     write(pool_path, pool)
     write_json(manifest_path, manifest)
+    write(work / 'review.md', _review.render(_pool.parse(pool, cfg), manifest, cfg))
     return {'workdir': str(work), 'number': number, 'added': added, 'candidates': len(items),
             'source_review_count': len(pending), 'public_head': public_head, 'state_head': state_head}
 
@@ -353,6 +359,7 @@ def build(path, number):
     result = {'ready_for_review': not report.errors, 'editor_review': 'pending', 'number': number,
               'public_head': public_head, 'selected': len(selected), 'errors': report.errors, 'warnings': report.warnings}
     write_json(work / 'checks.json', result)
+    write(work / 'review.md', _review.render(pool, manifest, cfg))
     for stale in ('public.patch', 'bundle.json'):
         (work / stale).unlink(missing_ok=True)
     if report.errors:

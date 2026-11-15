@@ -1,6 +1,7 @@
 """Two real Git fixtures exercise the existing ledger contract and public export."""
 from __future__ import annotations
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -10,6 +11,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'scripts'))
 sys.path.insert(0, str(ROOT / 'tests'))
 import editorial as e
+import _review
 import _common as c
 import validate_issue
 from test_publish import git, init
@@ -186,6 +188,109 @@ class EditorialTests(unittest.TestCase):
         cfg = c.load_config()
         self.assertEqual(e.source_key('https://arxiv.org/pdf/2611.12345v2.pdf', cfg), e.source_key('https://arxiv.org/abs/2611.12345', cfg))
         self.assertEqual(e.source_key('https://doi.org/10.1234/ABC', cfg), e.source_key('https://dx.doi.org/10.1234/abc', cfg))
+
+    def test_private_review_resolves_names_shows_all_candidates_and_keeps_exports_clean(self):
+        name = 'PRIVATE_REVIEW_NAME_SENTINEL'
+        self.state['weeks']['2026-W46']['members_snapshot'] = [
+            {'member_id': SECRET, 'github_user_id': 123, 'display_name': 'Frozen alias'}]
+        self.state['submissions']['issue-2']['validation']['errors'] = ['请补充可定位的原始资料链接']
+        self.persist_state()
+        mapping = self.private / '.weekly-private/names.json'
+        mapping.write_text(json.dumps({'schema_version': 1, 'enabled': True, 'members': [
+            {'member_id': SECRET, 'github_user_id': 123, 'real_name': name}]}))
+        config = e.read_json(self.config)
+        config['editorial']['review_names_file'] = '.weekly-private/names.json'
+        e.write_json(self.config, config)
+        output = subprocess.run([sys.executable, str(ROOT / 'scripts/editorial.py'), 'prepare',
+                                 '--config', str(self.config), '--week', '2026-W46'], capture_output=True, text=True)
+        self.assertEqual(output.returncode, 0, output.stderr)
+        self.assertNotIn(name, output.stdout + output.stderr)
+        review = (self.work / 'review.md').read_text()
+        for number in (1, 2, 4):
+            self.assertIn(f'[#'+str(number)+']', review)
+        self.assertNotIn('[#3]', review)
+        self.assertEqual(review.count(name), 3)
+        self.assertIn('工程实战', review)
+        self.assertIn('文章', review)
+        self.assertIn('请补充可定位', review)
+        self.assertIn('与已刊内容重复', review)
+        self.assertEqual((self.work / 'review.md').stat().st_mode & 0o777, 0o600)
+        result, code = e.build(self.config, 47)
+        self.assertEqual(code, 0, result)
+        public = ''.join(path.read_text() for path in (self.work / 'public').rglob('*') if path.is_file())
+        public += (self.work / 'public.patch').read_text() + (self.work / 'issue-47.md').read_text()
+        public += (self.work / 'preview.html').read_text() + (self.work / 'checks.json').read_text()
+        self.assertNotIn(name, public)
+        self.assertNotIn(SECRET, public)
+        self.assertEqual(git(self.private, 'status', '--porcelain'), '')
+
+    def test_review_tracks_edits_and_only_includes_actionable_editorial_notes(self):
+        self.prepare()
+        path = self.work / 'pool.md'
+        path.write_text(path.read_text().replace('原文介绍可复现的工程方法，指标需要编辑回到原文核对。',
+                                                '更新后的工程方法摘要。后续细节留在完整预览。')
+                        .replace('- 核验状态：待核对原文', '- 核验状态：已核对官方页面\n- 入刊提示：这是旧闻，请决定是否作为回顾'))
+        result, code = e.build(self.config, 47)
+        self.assertEqual(code, 0, result)
+        review = (self.work / 'review.md').read_text()
+        self.assertIn('更新后的工程方法摘要。', review)
+        self.assertNotIn('后续细节', review)
+        self.assertIn('这是旧闻', review)
+        self.assertNotIn('已核对官方页面', review)
+        self.assertNotIn('原文核对及编辑注意事项', review)
+        # It is still useful when a selected withdrawn source makes the pack invalid.
+        self.state['submissions']['issue-1']['validation']['status'] = 'withdrawn'
+        self.persist_state()
+        self.prepare()
+        result, code = e.build(self.config, 47)
+        self.assertEqual(code, 1)
+        self.assertIn('投稿已撤回', (self.work / 'review.md').read_text())
+
+    def test_review_retains_removed_candidate_without_readding_it_to_the_pool(self):
+        self.prepare()
+        path = self.work / 'pool.md'
+        text = path.read_text()
+        start = text.index('### [ ] 2.')
+        end = text.index('### [ ] 4.', start)
+        path.write_text(text[:start] + text[end:])
+        self.prepare()
+        self.assertNotIn('### [ ] 2.', path.read_text())
+        self.assertIn('[#2]', (self.work / 'review.md').read_text())
+        self.assertIn('已从素材池移除', (self.work / 'review.md').read_text())
+
+    def test_names_require_both_frozen_identities_and_never_guess_from_display_names(self):
+        state = {'weeks': {'2026-W46': {'members_snapshot': [
+            {'member_id': 'stable-id', 'github_user_id': 123, 'display_name': 'Frozen alias'}]}}}
+        submission = {'task_week': '2026-W46', 'member_id': 'stable-id', 'author_user_id': 123}
+        mapped = {'member_id': 'stable-id', 'github_user_id': 123, 'real_name': 'Private test name'}
+        self.assertEqual(_review.submitter_name(state, submission, '2026-W46', [mapped]), 'Private test name')
+        self.assertEqual(_review.submitter_name(state, submission, '2026-W46', [mapped, mapped]), 'Frozen alias')
+        self.assertEqual(_review.submitter_name(state, submission, '2026-W46', [{**mapped, 'github_user_id': 999}]), 'Frozen alias')
+        self.assertEqual(_review.submitter_name(state, {**submission, 'author_user_id': 999}, '2026-W46', [mapped]), '未匹配成员')
+
+    def test_private_yaml_names_support_existing_format_without_logging_bad_payloads(self):
+        mapping = self.private / '.weekly-private/names.yml'
+        mapping.write_text('schema_version: 1\nenabled: true\nreal_name_scope: dingtalk_group_only\n'
+                           'members:\n  - member_id: test-id\n    github_user_id: 123\n'
+                           '    real_name: "Private | test name" # local comment\n')
+        options = {'review_names_file': '.weekly-private/names.yml'}
+        self.assertEqual(_review.load_names(self.private, options)[0]['real_name'], 'Private | test name')
+        mapping.write_text('members: [PRIVATE_BAD_MAPPING_SENTINEL]\n')
+        with self.assertRaises(ValueError) as error:
+            _review.load_names(self.private, options)
+        self.assertNotIn('PRIVATE_BAD_MAPPING_SENTINEL', str(error.exception))
+        with self.assertRaises(ValueError):
+            _review.load_names(self.private, {'review_names_file': '../outside.yml'})
+
+    def test_review_escapes_submission_text_and_rejects_non_web_links(self):
+        self.prepare()
+        pool = {'sections': [{'entries': [{'selected': False, 'title': '<script> | [x]',
+                  'fields': {'链接': 'javascript:alert(1)', '核心亮点': '<img src=x> | **a**'}}]}]}
+        document = _review.render(pool, {**e.read_json(self.work / 'manifest.json'), 'sources': {}}, c.load_config(str(self.config)))
+        self.assertNotIn('<script>', document)
+        self.assertNotIn('<img', document)
+        self.assertNotIn('javascript:', document)
+        self.assertIn('&#124;', document)
 
 
 if __name__ == '__main__':
